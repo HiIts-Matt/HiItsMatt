@@ -1,0 +1,82 @@
+.wrap {
+  display: grid;
+  gap: 0.6rem;
+}
+
+.scroller {
+  overflow-x: auto;
+  overflow-y: hidden;
+  padding-block-end: 0.25rem;
+  scrollbar-width: thin;
+  scrollbar-color: var(--c-border-strong) transparent;
+}
+
+.grid {
+  display: grid;
+  grid-auto-flow: column;
+  grid-template-rows: repeat(7, 1fr);
+  gap: 3px;
+  width: max-content;
+}
+
+.day {
+  width: 11px;
+  height: 11px;
+  border-radius: 2px;
+  background: rgb(255 255 255 / 5%);
+}
+
+/*
+ * Levels walk the hero gradient from deep blue to magenta so the busiest days
+ * read as the same accent used everywhere else.
+ */
+.day[data-level="1"] {
+  background: rgb(33 13 255 / 55%);
+}
+
+.day[data-level="2"] {
+  background: rgb(96 20 235 / 70%);
+}
+
+.day[data-level="3"] {
+  background: rgb(180 16 255 / 82%);
+}
+
+.day[data-level="4"] {
+  background: var(--c-pink);
+  box-shadow: 0 0 8px rgb(251 10 255 / 45%);
+}
+
+.legend {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.72rem;
+  color: var(--c-faint);
+}
+
+.legendSwatches {
+  display: flex;
+  gap: 3px;
+}
+
+/* Fits the calendar inside a phone-height section without clipping. */
+@media (max-width: 640px) {
+  .day {
+    width: 8px;
+    height: 8px;
+  }
+
+  .grid {
+    gap: 2px;
+  }
+
+  .legend {
+    font-size: 0.68rem;
+  }
+}
+
+.total {
+  margin-inline-end: auto;
+  color: var(--c-muted);
+}

@@ -1,0 +1,222 @@
+.layout {
+  display: grid;
+  gap: clamp(1.25rem, 3vh, 2.5rem);
+  width: min(100%, 1180px);
+  margin-inline: auto;
+  min-height: 0;
+}
+
+.header {
+  display: grid;
+  gap: 0.5rem;
+}
+
+.eyebrow {
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  letter-spacing: 0.28em;
+  text-transform: uppercase;
+  color: var(--c-faint);
+}
+
+.heading {
+  font-size: clamp(2rem, 5vw, 3.75rem);
+  font-variation-settings: "opsz" 72;
+}
+
+.columns {
+  display: grid;
+  grid-template-columns: minmax(0, 0.85fr) minmax(0, 1.15fr);
+  gap: clamp(1rem, 2vw, 1.75rem);
+  align-items: start;
+  min-height: 0;
+}
+
+.card {
+  display: grid;
+  gap: 1rem;
+  padding: clamp(1rem, 2vw, 1.5rem);
+  border: 1px solid var(--c-border);
+  border-radius: var(--radius);
+  background: var(--c-surface);
+}
+
+.stack {
+  display: grid;
+  gap: clamp(1rem, 2vw, 1.75rem);
+  min-height: 0;
+}
+
+.identity {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.avatar {
+  width: 76px;
+  height: 76px;
+  flex: none;
+  border-radius: 50%;
+  border: 1px solid var(--c-border-strong);
+  background: var(--c-ink-raised);
+  object-fit: cover;
+}
+
+.name {
+  font-size: 1.6rem;
+  line-height: 1.1;
+}
+
+.login {
+  font-family: var(--font-mono);
+  font-size: 0.82rem;
+  color: var(--c-muted);
+}
+
+.bio {
+  color: var(--c-muted);
+  text-wrap: pretty;
+}
+
+.meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+}
+
+.chip {
+  padding: 0.25rem 0.7rem;
+  border: 1px solid var(--c-border);
+  border-radius: 999px;
+  font-size: 0.78rem;
+  color: var(--c-muted);
+}
+
+.stats {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.75rem;
+  padding-block-start: 0.25rem;
+  border-block-start: 1px solid var(--c-border);
+}
+
+.stat {
+  display: grid;
+  gap: 0.1rem;
+}
+
+.statValue {
+  font-family: var(--font-display);
+  font-size: 1.5rem;
+  font-variation-settings: "opsz" 24;
+  font-variant-numeric: tabular-nums;
+}
+
+.statLabel {
+  font-size: 0.7rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--c-faint);
+}
+
+.profileLink {
+  justify-self: start;
+  padding: 0.45rem 1rem;
+  border: 1px solid var(--c-border-strong);
+  border-radius: 999px;
+  font-size: 0.82rem;
+  color: var(--c-muted);
+  transition:
+    color 200ms ease,
+    border-color 200ms ease,
+    background 200ms ease;
+}
+
+.profileLink:hover {
+  color: var(--c-text);
+  border-color: var(--c-border-strong);
+  background: var(--c-surface-hover);
+}
+
+.cardTitle {
+  font-family: var(--font-body);
+  font-size: 0.72rem;
+  font-weight: 600;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--c-faint);
+}
+
+.skeleton {
+  height: 0.85rem;
+  border-radius: 999px;
+  background: linear-gradient(
+    90deg,
+    rgb(255 255 255 / 5%),
+    rgb(255 255 255 / 11%),
+    rgb(255 255 255 / 5%)
+  );
+  background-size: 220% 100%;
+  animation: shimmer 1.4s linear infinite;
+}
+
+@keyframes shimmer {
+  to {
+    background-position: -220% 0;
+  }
+}
+
+.notice {
+  font-size: 0.82rem;
+  color: var(--c-muted);
+  border-inline-start: 2px solid var(--c-pink);
+  padding-inline-start: 0.7rem;
+  text-wrap: pretty;
+}
+
+@media (max-width: 900px) {
+  .columns {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+/*
+ * Phones keep the one-section-per-screen rule, so the content scales down to
+ * fit rather than overflowing a clipped, fixed-height section.
+ */
+@media (max-width: 640px) {
+  .layout,
+  .columns,
+  .stack {
+    gap: 0.75rem;
+  }
+
+  .card {
+    gap: 0.7rem;
+    padding: 0.9rem;
+  }
+
+  .avatar {
+    width: 56px;
+    height: 56px;
+  }
+
+  .name {
+    font-size: 1.3rem;
+  }
+
+  .bio {
+    font-size: 0.9rem;
+    line-height: 1.45;
+  }
+
+  .statValue {
+    font-size: 1.25rem;
+  }
+
+  .profileLink {
+    padding: 0.35rem 0.85rem;
+    font-size: 0.78rem;
+  }
+}

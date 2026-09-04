@@ -1,0 +1,33 @@
+/*
+ * Palette is derived from the hero shader gradient (shadergradient.co
+ * waterPlane, colours #fb0aff -> #210dff -> #00009f) so every accent on the
+ * page reads as the same light source.
+ */
+:root {
+  --c-pink: #fb0aff;
+  --c-blue: #210dff;
+  --c-deep: #00009f;
+
+  --c-ink: #05010f;
+  --c-ink-raised: #0b0620;
+  --c-text: #f5f2ff;
+  --c-muted: #a39dc4;
+  --c-faint: #6f6a8f;
+
+  --c-surface: rgb(255 255 255 / 4%);
+  --c-surface-hover: rgb(255 255 255 / 7%);
+  --c-border: rgb(255 255 255 / 10%);
+  --c-border-strong: rgb(255 255 255 / 18%);
+
+  --font-display: "Fraunces Variable", "Iowan Old Style", Georgia, "Times New Roman", serif;
+  --font-body: "Inter Variable", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-mono: ui-monospace, "Cascadia Code", "JetBrains Mono", Consolas, monospace;
+
+  --gutter: clamp(1.25rem, 5vw, 6rem);
+  --radius: 14px;
+  /*
+   * Space the non-centred sections reserve on the left: the rail's own width
+   * plus its inset from the viewport edge, so nothing slides underneath it.
+   */
+  --nav-width: 11.5rem;
+}

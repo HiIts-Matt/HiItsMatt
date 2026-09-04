@@ -1,0 +1,116 @@
+.nav {
+  position: fixed;
+  z-index: 20;
+  inset-block-start: 50%;
+  inset-inline-start: clamp(1rem, 2.5vw, 2.25rem);
+  translate: 0 -50%;
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  padding: 0.5rem;
+  border: 1px solid var(--c-border);
+  border-radius: 18px;
+  background: rgb(5 1 15 / 55%);
+  backdrop-filter: blur(16px);
+}
+
+.item {
+  position: relative;
+  display: grid;
+  grid-template-columns: auto 1fr;
+  align-items: center;
+  gap: 0.7rem;
+  padding: 0.55rem 1.1rem 0.55rem 0.85rem;
+  border-radius: 12px;
+  color: var(--c-faint);
+  text-align: start;
+  transition:
+    color 200ms ease,
+    background 200ms ease;
+}
+
+.item:hover {
+  color: var(--c-muted);
+  background: var(--c-surface);
+}
+
+.active {
+  color: var(--c-text);
+  background: var(--c-surface-hover);
+}
+
+/* The marker replaces the old dot: presence without another floating object. */
+.item::before {
+  content: "";
+  position: absolute;
+  inset-inline-start: 0;
+  width: 2px;
+  height: 0;
+  border-radius: 999px;
+  background: var(--c-text);
+  transition: height 220ms cubic-bezier(0.16, 0.84, 0.28, 1);
+}
+
+.active::before {
+  height: 1.1rem;
+}
+
+.index {
+  font-family: var(--font-mono);
+  font-size: 0.65rem;
+  letter-spacing: 0.12em;
+  font-variant-numeric: tabular-nums;
+  opacity: 0.7;
+}
+
+.label {
+  font-size: 0.82rem;
+  letter-spacing: 0.01em;
+  white-space: nowrap;
+}
+
+/*
+ * Phones get the same always-visible labels, laid along the bottom edge where
+ * a vertical rail would eat the viewport width.
+ */
+@media (max-width: 640px) {
+  .nav {
+    inset-block-start: auto;
+    inset-block-end: 1rem;
+    inset-inline-start: 50%;
+    translate: -50% 0;
+    flex-direction: row;
+    gap: 0.1rem;
+    padding: 0.35rem;
+  }
+
+  /* With the index hidden there is only one column left, so drop the two-column
+     track and its gap rather than leaving the label offset to one side. */
+  .item {
+    grid-template-columns: 1fr;
+    gap: 0;
+    justify-items: center;
+    text-align: center;
+    padding: 0.45rem 0.9rem;
+  }
+
+  .item::before {
+    inset-inline: 0.8rem;
+    inset-block-start: 0;
+    width: auto;
+    height: 2px;
+  }
+
+  .active::before {
+    height: 2px;
+    opacity: 1;
+  }
+
+  .item:not(.active)::before {
+    opacity: 0;
+  }
+
+  .index {
+    display: none;
+  }
+}

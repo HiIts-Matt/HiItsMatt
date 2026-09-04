@@ -1,0 +1,44 @@
+.section {
+  position: relative;
+  height: 100dvh;
+  scroll-snap-align: start;
+  /* Forces a hard flick to settle on the next section instead of skipping it. */
+  scroll-snap-stop: always;
+  overflow: hidden;
+  display: grid;
+  align-content: center;
+  padding: clamp(2.5rem, 7vh, 5rem) var(--gutter);
+  /* Keep content clear of the floating nav rail on the left. */
+  padding-inline-start: calc(var(--gutter) + var(--nav-width));
+}
+
+/*
+ * The nav rail floats over the page rather than occupying a column, so a
+ * centred section reclaims the reserved gutter to stay optically centred in the
+ * viewport.
+ */
+.centered {
+  padding-inline-start: var(--gutter);
+  justify-items: center;
+  text-align: center;
+}
+
+/*
+ * Paired with the proximity-snap fallback in global.css: once the viewport is
+ * too short to hold a section, the section must be allowed to grow and scroll
+ * normally rather than clip its content.
+ */
+@media (max-height: 620px) {
+  .section {
+    height: auto;
+    min-height: 100dvh;
+    overflow: visible;
+  }
+}
+
+@media (max-width: 640px) {
+  .section {
+    padding-inline-start: var(--gutter);
+    padding-block-end: calc(var(--gutter) + 3.5rem);
+  }
+}

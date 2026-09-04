@@ -1,0 +1,24 @@
+{
+  "compilerOptions": {
+    "target": "ES2023",
+    "lib": ["ES2023"],
+    "module": "NodeNext",
+    "moduleResolution": "NodeNext",
+    "outDir": "dist",
+    "rootDir": "src",
+    "strict": true,
+    "noUncheckedIndexedAccess": true,
+    "verbatimModuleSyntax": true,
+    "isolatedModules": true,
+    "skipLibCheck": true,
+    "types": ["node"],
+    "sourceMap": true,
+    // Composite + declarations exist for the client: it references this project
+    // so `import type { AppType } from "server"` resolves to emitted .d.ts
+    // instead of dragging Node-typed sources into the browser tsconfig.
+    "composite": true,
+    "declaration": true,
+    "declarationMap": true
+  },
+  "include": ["src"]
+}

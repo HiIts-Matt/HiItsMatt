@@ -1,0 +1,42 @@
+.loader {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  display: grid;
+  place-content: center;
+  justify-items: center;
+  background: var(--c-ink);
+  transition: translate 850ms cubic-bezier(0.76, 0, 0.24, 1);
+  will-change: translate;
+}
+
+/* Slides the whole curtain off the top edge to reveal the hero underneath. */
+.exit {
+  translate: 0 -100%;
+  pointer-events: none;
+}
+
+.bar {
+  width: min(220px, 45vw);
+  height: 1px;
+  overflow: hidden;
+  background: var(--c-border-strong);
+}
+
+.bar::after {
+  content: "";
+  display: block;
+  height: 100%;
+  width: 38%;
+  background: var(--c-text);
+  animation: sweep 1.15s cubic-bezier(0.65, 0, 0.35, 1) infinite;
+}
+
+@keyframes sweep {
+  from {
+    translate: -100% 0;
+  }
+  to {
+    translate: 365% 0;
+  }
+}

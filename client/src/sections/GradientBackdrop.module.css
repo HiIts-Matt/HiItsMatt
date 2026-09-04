@@ -1,0 +1,40 @@
+.backdrop {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  overflow: hidden;
+  background: var(--c-ink);
+}
+
+/*
+ * The shader plane is finite, and the camera looks across it diagonally. With a
+ * fixed vertical field of view, a wider viewport widens the horizontal view
+ * angle, so past roughly 16:9 the frustum reaches past the plane and its edge
+ * appears as a black wedge in the lower left.
+ *
+ * Letting the canvas fill the viewport therefore makes the composition depend
+ * on the window's aspect ratio. Instead the canvas is pinned to one aspect and
+ * scaled to cover, exactly like `background-size: cover`: the shader always
+ * renders the framing that was tuned at 16:10, and the viewport only ever crops
+ * it. Wider windows crop top and bottom, taller ones crop left and right, and
+ * the plane edge stays outside the crop in both directions.
+ *
+ * Cost is the overdraw of the cropped band — at 21:9 about half again as many
+ * pixels, which is why pixelDensity stays at 1.
+ */
+.stage {
+  /*
+   * 1.6 was not enough: the wave animates, so the plane's edge sweeps in and
+   * out of the lower-left corner and only some frames showed it. Measured
+   * across animation phases at 2560x1440, 1.6 leaked on half of them and 1.45
+   * was the first clean value; 1.35 keeps margin for phases not sampled.
+   */
+  --stage-aspect: 1.35;
+
+  position: absolute;
+  inset-block-start: 50%;
+  inset-inline-start: 50%;
+  translate: -50% -50%;
+  width: max(100vw, calc(100dvh * var(--stage-aspect)));
+  height: max(100dvh, calc(100vw / var(--stage-aspect)));
+}

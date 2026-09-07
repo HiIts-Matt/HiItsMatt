@@ -87,11 +87,13 @@ export function Landing() {
         <Intro revealed={phase === "ready"} onBackdropReady={handleBackdropReady} />
       </Section>
 
-      <Section id={overview.id} label={overview.label}>
+      {/* Both run past one screen: the overview carries the repo belt under the
+          profile, and the projects page grows with each published case. */}
+      <Section id={overview.id} label={overview.label} tall>
         <Overview />
       </Section>
 
-      <Section id={projects.id} label={projects.label}>
+      <Section id={projects.id} label={projects.label} tall>
         <Projects />
       </Section>
 

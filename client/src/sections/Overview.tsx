@@ -1,5 +1,7 @@
 import { ContributionGraph } from "../components/ContributionGraph";
 import { LanguageBar } from "../components/LanguageBar";
+import { RepoCarousel } from "../components/RepoCarousel";
+import { SectionTitle } from "../components/SectionTitle";
 import { useResource } from "../hooks/useResource";
 import { api, unwrap } from "../lib/api";
 import styles from "./Overview.module.css";
@@ -17,12 +19,7 @@ export function Overview() {
 
   return (
     <div className={styles.layout}>
-      <header className={styles.header}>
-        <p className={styles.eyebrow}>02 — Overview</p>
-        <h2 className={styles.heading}>
-          What I work on
-        </h2>
-      </header>
+      <SectionTitle id="overview" className={styles.header} />
 
       <div className={styles.columns}>
         <article className={styles.card}>
@@ -43,8 +40,8 @@ export function Overview() {
                   className={styles.avatar}
                   src={profile.data.avatarUrl}
                   alt=""
-                  width={76}
-                  height={76}
+                  width={96}
+                  height={96}
                   loading="lazy"
                   decoding="async"
                 />
@@ -118,6 +115,17 @@ export function Overview() {
           </article>
         </div>
       </div>
+
+      {/* The automatic index of everything public, directly under the profile it
+          belongs to. Curated work lives one section further down. */}
+      <section className={styles.belt} aria-label="Public repositories">
+        <div className={styles.beltHeader}>
+          <h3 className={styles.cardTitle}>Every public repository</h3>
+          <p className={styles.beltHint}>Hover to pause</p>
+        </div>
+
+        <RepoCarousel />
+      </section>
     </div>
   );
 }

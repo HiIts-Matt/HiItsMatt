@@ -1,0 +1,39 @@
+/*
+ * One display word, sized to be the loudest type on the page, under a mono line
+ * that gives it the index and a sentence of context. The two faces are the whole
+ * effect: nothing here is coloured, so the section's own content keeps the accent.
+ */
+.title {
+  display: grid;
+  gap: clamp(0.55rem, 1vh, 0.9rem);
+}
+
+.eyebrow {
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  letter-spacing: 0.28em;
+  text-transform: uppercase;
+  color: var(--c-faint);
+}
+
+.heading {
+  /* Larger than the old 4.5rem ceiling: at this size the optical axis matters,
+     hence "opsz" rather than leaving Fraunces at its text default. */
+  font-size: clamp(2.75rem, 8.5vw, 7rem);
+  font-variation-settings: "opsz" 96;
+  letter-spacing: -0.03em;
+  text-wrap: balance;
+}
+
+@media (max-width: 640px) {
+  .eyebrow {
+    font-size: 0.66rem;
+    letter-spacing: 0.22em;
+  }
+
+  /* Tracks the narrow column instead of the viewport so "Personal Work" still
+     clears the gutter on a 320px screen. */
+  .heading {
+    font-size: clamp(2.15rem, 11vw, 3.4rem);
+  }
+}

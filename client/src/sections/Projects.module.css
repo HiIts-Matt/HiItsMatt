@@ -1,172 +1,233 @@
+/*
+ * A stack of case studies rather than one screen of cards: this section is
+ * `tall` (see Section.module.css), so it grows with the number of published
+ * projects instead of compressing them.
+ */
 .layout {
   display: grid;
-  gap: clamp(1.25rem, 3vh, 2.5rem);
-  width: 100%;
+  gap: clamp(1.75rem, 5vh, 3.5rem);
+  width: min(100%, 1320px);
+  margin-inline: auto;
   min-height: 0;
 }
 
-.header {
+.cases {
   display: grid;
-  gap: 0.5rem;
-  width: min(100%, 1180px);
-  margin-inline: auto;
+  gap: clamp(1rem, 2.5vh, 2rem);
 }
 
-.eyebrow {
-  font-family: var(--font-mono);
-  font-size: 0.72rem;
-  letter-spacing: 0.28em;
+.case {
+  display: grid;
+  grid-template-columns: minmax(0, 1.3fr) minmax(0, 1fr);
+  gap: clamp(1rem, 2.5vw, 2rem);
+  padding: clamp(1rem, 2vw, 1.5rem);
+  border: 1px solid var(--c-border);
+  border-radius: var(--radius);
+  background: var(--c-surface);
+}
+
+.gallery {
+  display: grid;
+  gap: 0.6rem;
+  align-content: start;
+  min-width: 0;
+}
+
+.frame {
+  position: relative;
+  display: grid;
+  place-items: center;
+  aspect-ratio: 16 / 9;
+  overflow: hidden;
+  border: 1px solid var(--c-border);
+  border-radius: 10px;
+  background: var(--c-ink-raised);
+}
+
+.media {
+  width: 100%;
+  height: 100%;
+  /* Screenshots and clips arrive in whatever shape the repo committed them in;
+     contain shows the whole frame rather than cropping a corner off it. */
+  object-fit: contain;
+}
+
+.frameEmpty {
+  gap: 0.4rem;
+  background: linear-gradient(140deg, rgb(251 10 255 / 10%), rgb(33 13 255 / 14%));
+}
+
+.frameInitials {
+  font-family: var(--font-display);
+  font-size: clamp(2rem, 6vw, 3.25rem);
+  letter-spacing: 0.08em;
+  color: var(--c-muted);
+}
+
+.frameHint {
+  font-size: 0.7rem;
+  letter-spacing: 0.18em;
   text-transform: uppercase;
   color: var(--c-faint);
 }
 
-.heading {
-  font-size: clamp(2rem, 5vw, 3.75rem);
-  font-variation-settings: "opsz" 72;
+.caption {
+  font-size: 0.8rem;
+  color: var(--c-muted);
+  text-wrap: pretty;
 }
 
-/*
- * Bleeds past the section padding so cards run off both edges, and masks them
- * into the background instead of ending on a hard cut.
- */
-.viewport {
-  position: relative;
-  margin-inline: calc(var(--gutter) * -1);
-  overflow: hidden;
-  mask-image: linear-gradient(90deg, transparent, #000 6%, #000 94%, transparent);
-}
-
-.track {
+.thumbs {
   display: flex;
-  gap: 1rem;
-  width: max-content;
-  padding-inline: var(--gutter);
-  animation: marquee var(--duration, 60s) linear infinite;
-}
-
-/* Hover and keyboard focus both stop the belt so a card can be read or clicked. */
-.viewport:hover .track,
-.track:focus-within {
-  animation-play-state: paused;
-}
-
-@keyframes marquee {
-  to {
-    /* The list is rendered twice; -50% is exactly one full set. */
-    translate: -50% 0;
-  }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .track {
-    animation: none;
-    /* Without the belt, the row has to be reachable by hand. */
-    padding-inline-end: calc(var(--gutter) * 2);
-  }
-
-  .viewport {
-    overflow-x: auto;
-  }
-}
-
-.card {
-  display: grid;
-  grid-template-rows: auto auto 1fr auto;
-  gap: 0.7rem;
-  width: 320px;
-  padding: 0.75rem;
-  border: 1px solid var(--c-border);
-  border-radius: var(--radius);
-  background: var(--c-surface);
-  transition:
-    border-color 220ms ease,
-    background 220ms ease,
-    translate 220ms ease;
-}
-
-.card:hover {
-  border-color: var(--c-border-strong);
-  background: var(--c-surface-hover);
-  translate: 0 -4px;
+  flex-wrap: wrap;
+  gap: 0.5rem;
 }
 
 .thumb {
-  aspect-ratio: 2 / 1;
-  width: 100%;
-  border-radius: 8px;
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 72px;
+  aspect-ratio: 16 / 10;
+  padding: 0;
+  overflow: hidden;
   border: 1px solid var(--c-border);
+  border-radius: 6px;
   background: var(--c-ink-raised);
+  transition:
+    border-color 180ms ease,
+    opacity 180ms ease;
+  opacity: 0.65;
+}
+
+.thumb img {
+  width: 100%;
+  height: 100%;
   object-fit: cover;
 }
 
-.thumbFallback {
-  display: grid;
-  place-items: center;
-  aspect-ratio: 2 / 1;
-  width: 100%;
-  border-radius: 8px;
-  border: 1px solid var(--c-border);
-  background: var(--c-surface);
-  font-family: var(--font-display);
-  font-size: 2rem;
-  letter-spacing: 0.1em;
+.thumb:hover {
+  opacity: 1;
+}
+
+.thumbActive {
+  opacity: 1;
+  border-color: var(--c-pink);
+}
+
+.thumbGlyph {
+  font-size: 0.9rem;
   color: var(--c-muted);
 }
 
-.name {
-  font-family: var(--font-mono);
-  font-size: 0.95rem;
-  color: var(--c-text);
+.body {
+  display: grid;
+  gap: 0.85rem;
+  align-content: start;
+  min-width: 0;
+}
+
+.titleRow {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.title {
+  font-size: clamp(1.4rem, 2.4vw, 2rem);
   overflow-wrap: anywhere;
 }
 
-.excerpt {
-  font-size: 0.84rem;
-  line-height: 1.5;
-  color: var(--c-muted);
-  /* Excerpts vary wildly in length; clamping keeps every card the same height. */
-  display: -webkit-box;
-  -webkit-box-orient: vertical;
-  -webkit-line-clamp: 3;
-  line-clamp: 3;
-  overflow: hidden;
+.year {
+  font-family: var(--font-mono);
+  font-size: 0.78rem;
+  color: var(--c-faint);
 }
 
-.footer {
+.tagline {
+  color: var(--c-text);
+  font-size: 1rem;
+  text-wrap: pretty;
+}
+
+.summary {
+  color: var(--c-muted);
+  font-size: 0.92rem;
+  line-height: 1.55;
+  text-wrap: pretty;
+}
+
+.tags {
   display: flex;
-  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  margin: 0;
+}
+
+.tag {
+  padding: 0.18rem 0.6rem;
+  border: 1px solid var(--c-border);
+  border-radius: 999px;
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  color: var(--c-muted);
+}
+
+.meta {
+  display: flex;
+  flex-wrap: wrap;
   gap: 0.9rem;
   font-size: 0.76rem;
   color: var(--c-faint);
 }
 
-.language {
+.metaItem {
   display: flex;
   align-items: center;
   gap: 0.4rem;
-  margin-inline-end: auto;
-  color: var(--c-muted);
 }
 
 .languageDot {
   width: 7px;
   height: 7px;
   border-radius: 50%;
-  background: var(--c-faint);
+  background: var(--c-pink);
 }
 
-.archived {
-  padding: 0.1rem 0.5rem;
-  border: 1px solid var(--c-border);
+.links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  padding-block-start: 0.2rem;
+}
+
+.link,
+.linkPrimary {
+  padding: 0.4rem 0.95rem;
+  border: 1px solid var(--c-border-strong);
   border-radius: 999px;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-  font-size: 0.66rem;
+  font-size: 0.8rem;
+  color: var(--c-muted);
+  transition:
+    color 200ms ease,
+    border-color 200ms ease,
+    background 200ms ease;
 }
 
-.skeletonCard {
-  width: 320px;
-  height: 300px;
+.link:hover,
+.linkPrimary:hover {
+  color: var(--c-text);
+  background: var(--c-surface-hover);
+}
+
+.linkPrimary {
+  color: var(--c-text);
+  border-color: var(--c-pink);
+}
+
+.skeletonCase {
+  height: clamp(260px, 38vh, 360px);
   border-radius: var(--radius);
   border: 1px solid var(--c-border);
   background: linear-gradient(
@@ -186,10 +247,15 @@
 }
 
 .notice {
-  width: min(100%, 1180px);
-  margin-inline: auto;
   font-size: 0.86rem;
   color: var(--c-muted);
   border-inline-start: 2px solid var(--c-pink);
   padding-inline-start: 0.7rem;
+  text-wrap: pretty;
+}
+
+@media (max-width: 900px) {
+  .case {
+    grid-template-columns: minmax(0, 1fr);
+  }
 }

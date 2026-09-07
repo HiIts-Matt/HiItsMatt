@@ -1,11 +1,19 @@
 import { useEffect, useState } from "react";
 
 /**
+ * Ratios only refresh when a threshold is crossed, and a threshold step on a
+ * two-screen section is half a viewport of scrolling. Twenty steps keep the
+ * comparison current for tall sections without a scroll listener.
+ */
+const THRESHOLDS = Array.from({ length: 21 }, (_, step) => step / 20);
+
+/**
  * Tracks which snap section currently owns the viewport.
  *
- * Ratios are compared across all observed sections rather than trusting the
- * first `isIntersecting` callback: mid-scroll two sections are always partly
- * visible, and picking the larger one is what keeps the nav from flickering.
+ * The metric is the share of the *viewport* a section covers, not the share of
+ * the section that is visible: sections differ in height — the overview and
+ * projects pages run past one screen — and an element ratio would rank a fully
+ * visible short section above a tall one filling the whole viewport.
  */
 export function useActiveSection(ids: readonly string[]): string {
   const [active, setActive] = useState<string>(ids[0] ?? "");
@@ -19,27 +27,29 @@ export function useActiveSection(ids: readonly string[]): string {
 
     if (elements.length === 0) return;
 
-    const ratios = new Map<string, number>();
+    const coverage = new Map<string, number>();
     const observer = new IntersectionObserver(
       (entries) => {
         for (const entry of entries) {
-          ratios.set(entry.target.id, entry.intersectionRatio);
+          const viewport = entry.rootBounds?.height ?? window.innerHeight;
+          coverage.set(
+            entry.target.id,
+            viewport > 0 ? entry.intersectionRect.height / viewport : 0,
+          );
         }
 
         let bestId = "";
-        let bestRatio = 0;
-        for (const [id, ratio] of ratios) {
-          if (ratio > bestRatio) {
-            bestRatio = ratio;
+        let bestCoverage = 0;
+        for (const [id, share] of coverage) {
+          if (share > bestCoverage) {
+            bestCoverage = share;
             bestId = id;
           }
         }
 
         if (bestId) setActive(bestId);
       },
-      // A dense threshold list is what makes the comparison meaningful; with a
-      // single threshold the ratios only update when a section crosses it.
-      { threshold: [0, 0.2, 0.4, 0.6, 0.8, 1] },
+      { threshold: THRESHOLDS },
     );
 
     for (const element of elements) observer.observe(element);

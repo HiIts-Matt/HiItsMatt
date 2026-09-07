@@ -1,6 +1,6 @@
 import { scrollToSection } from "../hooks/useActiveSection";
 import { cx } from "../lib/cx";
-import { SECTIONS } from "../sections/sections";
+import { SECTION_META, SECTIONS } from "../sections/sections";
 import styles from "./SideNav.module.css";
 
 type SideNavProps = {
@@ -10,7 +10,7 @@ type SideNavProps = {
 export function SideNav({ activeId }: SideNavProps) {
   return (
     <nav className={styles.nav} aria-label="Page sections">
-      {SECTIONS.map((section, index) => {
+      {SECTIONS.map((section) => {
         const isActive = section.id === activeId;
         return (
           <button
@@ -21,7 +21,7 @@ export function SideNav({ activeId }: SideNavProps) {
             onClick={() => scrollToSection(section.id)}
           >
             <span className={styles.index} aria-hidden="true">
-              {String(index + 1).padStart(2, "0")}
+              {SECTION_META[section.id].number}
             </span>
             <span className={styles.label}>{section.label}</span>
           </button>

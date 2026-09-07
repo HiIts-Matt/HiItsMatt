@@ -10,9 +10,20 @@ import type { AppType } from "server";
  * comes from the typed path itself. An empty base means "current origin", which
  * the Vite dev server proxies to the API process.
  */
-const client = hc<AppType>(import.meta.env.VITE_API_ORIGIN ?? "");
+const apiOrigin = import.meta.env.VITE_API_ORIGIN ?? "";
+
+const client = hc<AppType>(apiOrigin);
 
 export const api = client.api;
+
+/**
+ * Absolute URL for a path the server put inside a JSON payload — project media,
+ * which is streamed rather than fetched as RPC. The typed client cannot build
+ * these because they are data, not routes.
+ */
+export function apiUrl(path: string): string {
+  return `${apiOrigin}${path}`;
+}
 
 /** Structurally compatible with Hono's `ClientResponse`, without depending on it. */
 type JsonResponse<T> = {

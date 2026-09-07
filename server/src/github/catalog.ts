@@ -9,6 +9,7 @@ import {
   fetchRepoLanguages,
   GitHubError,
   renderMarkdown,
+  type RepoBase,
 } from "./rest.js";
 import type { LanguageStat, Profile, Repo } from "./types.js";
 
@@ -24,14 +25,17 @@ export function getProfile(): Promise<Profile> {
   return cached("profile", METADATA_TTL_MS, () => fetchProfile(env.githubUsername));
 }
 
-function getBaseRepos(): Promise<Omit<Repo, "readmeExcerpt">[]> {
+function getBaseRepos(): Promise<RepoBase[]> {
   return cached("repos:base", METADATA_TTL_MS, () => fetchOwnedPublicRepos(env.githubUsername));
 }
 
-function getReadmeMarkdown(repo: Omit<Repo, "readmeExcerpt">): Promise<string | null> {
-  return cached(`readme:${repo.fullName}`, CONTENT_TTL_MS, () =>
-    fetchReadmeMarkdown(repo.owner, repo.name),
-  );
+/**
+ * Exported so the curated projects share this cache entry: a repo can appear
+ * both in the carousel and on the projects page, and neither should pay for
+ * the other's README fetch.
+ */
+export function getReadmeMarkdown(owner: string, name: string): Promise<string | null> {
+  return cached(`readme:${owner}/${name}`, CONTENT_TTL_MS, () => fetchReadmeMarkdown(owner, name));
 }
 
 export function getRepos(): Promise<Repo[]> {
@@ -42,7 +46,9 @@ export function getRepos(): Promise<Repo[]> {
     const base = await getBaseRepos();
     const enriched = base.slice(0, ENRICHED_REPO_LIMIT);
 
-    const readmes = await Promise.allSettled(enriched.map((repo) => getReadmeMarkdown(repo)));
+    const readmes = await Promise.allSettled(
+      enriched.map((repo) => getReadmeMarkdown(repo.owner, repo.name)),
+    );
 
     return base.map((repo, index) => {
       const readme = readmes[index];
@@ -109,7 +115,7 @@ export async function getReadmeHtml(repoName: string): Promise<string | null> {
   }
 
   return cached(`readme-html:${match.fullName}`, CONTENT_TTL_MS, async () => {
-    const markdown = await getReadmeMarkdown(match);
+    const markdown = await getReadmeMarkdown(match.owner, match.name);
 
     if (markdown === null) {
       return null;

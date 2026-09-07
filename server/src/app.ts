@@ -44,5 +44,9 @@ export type {
   ContributionWeek,
   LanguageStat,
   Profile,
+  Project,
+  ProjectLink,
+  ProjectMedia,
+  ProjectMediaKind,
   Repo,
 } from "./github/types.js";

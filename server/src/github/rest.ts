@@ -31,6 +31,8 @@ type RequestOptions = {
   accept?: string;
   method?: "GET" | "POST";
   body?: unknown;
+  /** Extra headers; the media proxy forwards the browser's Range with this. */
+  headers?: Record<string, string>;
 };
 
 /**
@@ -52,6 +54,8 @@ async function request(path: string, options: RequestOptions = {}): Promise<Resp
   if (options.body !== undefined) {
     headers["Content-Type"] = "application/json";
   }
+
+  Object.assign(headers, options.headers);
 
   let response: Response;
 
@@ -158,8 +162,32 @@ export async function fetchProfile(login: string): Promise<Profile> {
   };
 }
 
-export async function fetchOwnedPublicRepos(login: string): Promise<Omit<Repo, "readmeExcerpt">[]> {
-  const repos: Omit<Repo, "readmeExcerpt">[] = [];
+/** The published shape minus the enrichment the catalog layer adds. */
+export type RepoBase = Omit<Repo, "readmeExcerpt">;
+
+function toRepoBase(raw: RestRepo): RepoBase {
+  return {
+    name: raw.name,
+    fullName: raw.full_name,
+    owner: raw.owner.login,
+    description: raw.description,
+    htmlUrl: raw.html_url,
+    homepage: raw.homepage && raw.homepage.length > 0 ? raw.homepage : null,
+    language: raw.language,
+    stars: raw.stargazers_count,
+    forks: raw.forks_count,
+    topics: raw.topics ?? [],
+    // pushed_at is null for repos that never received a commit.
+    pushedAt: raw.pushed_at ?? raw.updated_at,
+    archived: raw.archived,
+    // GitHub's own Open Graph renderer; produces the repo card image and
+    // needs no authentication.
+    socialImageUrl: `https://opengraph.githubassets.com/1/${raw.full_name}`,
+  };
+}
+
+export async function fetchOwnedPublicRepos(login: string): Promise<RepoBase[]> {
+  const repos: RepoBase[] = [];
 
   // MAX_REPO_PAGES is a circuit breaker, not a real limit: 500 repos is far more
   // than the page shows and stops a paging bug from burning the rate limit.
@@ -179,24 +207,7 @@ export async function fetchOwnedPublicRepos(login: string): Promise<Omit<Repo, "
         continue;
       }
 
-      repos.push({
-        name: repo.name,
-        fullName: repo.full_name,
-        owner: repo.owner.login,
-        description: repo.description,
-        htmlUrl: repo.html_url,
-        homepage: repo.homepage && repo.homepage.length > 0 ? repo.homepage : null,
-        language: repo.language,
-        stars: repo.stargazers_count,
-        forks: repo.forks_count,
-        topics: repo.topics ?? [],
-        // pushed_at is null for repos that never received a commit.
-        pushedAt: repo.pushed_at ?? repo.updated_at,
-        archived: repo.archived,
-        // GitHub's own Open Graph renderer; produces the repo card image and
-        // needs no authentication.
-        socialImageUrl: `https://opengraph.githubassets.com/1/${repo.full_name}`,
-      });
+      repos.push(toRepoBase(repo));
     }
 
     if (raw.length < REPOS_PER_PAGE) {
@@ -207,6 +218,105 @@ export async function fetchOwnedPublicRepos(login: string): Promise<Omit<Repo, "
   repos.sort((a, b) => Date.parse(b.pushedAt) - Date.parse(a.pushedAt));
 
   return repos;
+}
+
+/**
+ * A single repository by name, private included when the token can read it.
+ * Null means "not visible to this server" — a wrong name and a missing scope
+ * are indistinguishable here, which is exactly what GitHub intends.
+ */
+export async function fetchRepo(
+  owner: string,
+  repo: string,
+): Promise<(RepoBase & { isPrivate: boolean }) | null> {
+  const response = await request(
+    `/repos/${encodeURIComponent(owner)}/${encodeURIComponent(repo)}`,
+  );
+
+  if (!response) {
+    return null;
+  }
+
+  const raw = (await response.json()) as RestRepo;
+
+  return { ...toRepoBase(raw), isPrivate: raw.private };
+}
+
+export type RepoEntry = {
+  type: "file" | "dir";
+  /** Path from the repository root. */
+  path: string;
+  name: string;
+  size: number;
+};
+
+type RestContent = {
+  type: string;
+  name: string;
+  path: string;
+  size: number;
+};
+
+/**
+ * Directory listing on the default branch. Null means the directory does not
+ * exist, which is the normal case for a repo with no `.portfolio` folder.
+ * Symlinks and submodules are dropped: neither can be streamed as an asset.
+ */
+export async function fetchRepoDirectory(
+  owner: string,
+  repo: string,
+  path: string,
+): Promise<RepoEntry[] | null> {
+  // Slashes separate path segments and must survive encoding.
+  const encodedPath = path.split("/").map(encodeURIComponent).join("/");
+  const response = await request(
+    `/repos/${encodeURIComponent(owner)}/${encodeURIComponent(repo)}/contents/${encodedPath}`,
+  );
+
+  if (!response) {
+    return null;
+  }
+
+  const raw: unknown = await response.json();
+
+  // A file path returns an object; only a directory returns an array.
+  if (!Array.isArray(raw)) {
+    return null;
+  }
+
+  const entries: RepoEntry[] = [];
+
+  for (const item of raw as RestContent[]) {
+    if (item.type !== "file" && item.type !== "dir") {
+      continue;
+    }
+
+    entries.push({ type: item.type, path: item.path, name: item.name, size: item.size });
+  }
+
+  return entries;
+}
+
+/**
+ * Raw file contents, unread, so a caller can stream the body straight to the
+ * browser. `range` is forwarded verbatim; GitHub answers 206 when it honours
+ * it and 200 when it does not, and both are valid for the proxy to pass on.
+ */
+export function fetchRepoFile(
+  owner: string,
+  repo: string,
+  path: string,
+  range?: string,
+): Promise<Response | null> {
+  const encodedPath = path.split("/").map(encodeURIComponent).join("/");
+
+  return request(
+    `/repos/${encodeURIComponent(owner)}/${encodeURIComponent(repo)}/contents/${encodedPath}`,
+    {
+      accept: "application/vnd.github.raw",
+      headers: range ? { Range: range } : undefined,
+    },
+  );
 }
 
 export async function fetchRepoLanguages(

@@ -24,6 +24,21 @@
 }
 
 /*
+ * Sections that carry more than one screen: the overview's profile grid plus
+ * its repo belt, and the projects page's stack of case studies. The snap area
+ * grows with the content, and because it is taller than the snapport the
+ * browser stops snapping while it covers the viewport — the section scrolls
+ * normally and the next one still snaps into place at its end.
+ */
+.tall {
+  height: auto;
+  min-height: 100dvh;
+  overflow: visible;
+  align-content: start;
+  padding-block: clamp(4rem, 12vh, 7rem);
+}
+
+/*
  * Paired with the proximity-snap fallback in global.css: once the viewport is
  * too short to hold a section, the section must be allowed to grow and scroll
  * normally rather than clip its content.

@@ -1,0 +1,31 @@
+{
+  "title": "Hi, It's Matt",
+  "tagline": "This site: a portfolio that reads itself out of GitHub",
+  "summary": "A Vite + React front end over a Hono API that pulls the profile, language split, contribution graph and every public repository straight from GitHub's REST and GraphQL APIs, caches them in process, and streams each project's own screenshots out of its `.portfolio` folder — so a private repo can be shown without handing a token to the browser.",
+  "year": "2026",
+  "status": "In progress",
+  "tags": ["react", "typescript", "vite", "hono", "three.js", "github-api"],
+  "cover": "media/01-hero.webp",
+  "media": [
+    {
+      "src": "media/01-hero.webp",
+      "alt": "Landing hero: 'Hi, It's Matt' over an animated shader gradient",
+      "caption": "The hero runs a three.js shader gradient, lazily imported so the headline paints first."
+    },
+    {
+      "src": "media/02-overview.webp",
+      "alt": "Overview section: profile card, language split, contribution graph and the repository rail",
+      "caption": "Everything here is live GitHub data — profile, language volume, a year of contributions."
+    },
+    {
+      "src": "media/03-personal-work.webp",
+      "alt": "Personal Work section: a grid of curated project cards",
+      "caption": "The curated half: repos named in PROJECT_REPOS, described by their own .portfolio manifest."
+    },
+    {
+      "src": "media/04-repositories.webp",
+      "alt": "Public Repositories expanded into a grid of every public repo",
+      "caption": "The drifting rail expands into every public repository at once."
+    }
+  ]
+}

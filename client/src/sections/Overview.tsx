@@ -64,7 +64,7 @@ export function Overview() {
               <div className={styles.stats}>
                 <div className={styles.stat}>
                   <span className={styles.statValue}>{profile.data.publicRepos}</span>
-                  <span className={styles.statLabel}>Repos</span>
+                  <span className={styles.statLabel}>Public Repos</span>
                 </div>
                 <div className={styles.stat}>
                   <span className={styles.statValue}>{profile.data.followers}</span>

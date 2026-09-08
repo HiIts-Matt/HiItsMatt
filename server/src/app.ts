@@ -45,6 +45,8 @@ export type {
   LanguageStat,
   Profile,
   Project,
+  ProjectEntry,
+  ProjectGroup,
   ProjectLink,
   ProjectMedia,
   ProjectMediaKind,

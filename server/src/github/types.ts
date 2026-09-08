@@ -93,3 +93,21 @@ export type Project = {
   /** Cover first; the client leads with `media[0]`. */
   media: ProjectMedia[];
 };
+
+/**
+ * A titled set of repositories that share one story — a homelab, a monorepo
+ * split across services — rendered as a single card that opens into its
+ * members. Groups exist only for display: they have no repo of their own, so
+ * their copy is derived from the members rather than from a manifest.
+ */
+export type ProjectGroup = {
+  /** Slugified title. Groups own no media, so this never collides with a project slug. */
+  slug: string;
+  title: string;
+  projects: Project[];
+};
+
+/** One slot on the projects page, in whitelist order. */
+export type ProjectEntry =
+  | { kind: "project"; project: Project }
+  | { kind: "group"; group: ProjectGroup };

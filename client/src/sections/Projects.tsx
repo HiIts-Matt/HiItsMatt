@@ -1,4 +1,5 @@
-import type { Project } from "server";
+import { useState } from "react";
+import type { Project, ProjectGroup } from "server";
 
 import { SectionTitle } from "../components/SectionTitle";
 import { useResource } from "../hooks/useResource";
@@ -116,6 +117,100 @@ function ProjectCard({ project }: { project: Project }) {
 }
 
 /**
+ * A group has no repository and therefore no manifest: its cover, languages and
+ * last-touched date are all read off its members, and clicking it opens them in
+ * a full-width row beneath the card rather than navigating anywhere.
+ */
+function GroupCard({ group }: { group: ProjectGroup }) {
+  const [open, setOpen] = useState(false);
+  const panelId = `group-${group.slug}`;
+
+  const cover = group.projects.map(coverImage).find((entry) => entry !== null) ?? null;
+  const languages = [
+    ...new Set(group.projects.flatMap((project) => (project.language ? [project.language] : []))),
+  ];
+  const latest = group.projects.reduce(
+    (newest, project) => (project.pushedAt > newest ? project.pushedAt : newest),
+    group.projects[0]?.pushedAt ?? "",
+  );
+  const updated = new Date(latest).toLocaleDateString(undefined, {
+    month: "short",
+    year: "numeric",
+  });
+  // A group can be down to one visible member while the others are private and
+  // skipped, so the count is written rather than assumed plural.
+  const count = `${group.projects.length} repo${group.projects.length === 1 ? "" : "s"}`;
+
+  return (
+    <>
+      <button
+        type="button"
+        className={cx(styles.card, styles.groupCard, open && styles.groupCardOpen)}
+        aria-expanded={open}
+        aria-controls={panelId}
+        onClick={() => setOpen((wasOpen) => !wasOpen)}
+      >
+        {cover ? (
+          <div className={styles.cover}>
+            <img
+              className={styles.media}
+              src={apiUrl(cover.url)}
+              alt=""
+              loading="lazy"
+              decoding="async"
+            />
+          </div>
+        ) : (
+          <div className={cx(styles.cover, styles.coverEmpty)}>
+            <span className={styles.coverInitials} aria-hidden="true">
+              {group.title.slice(0, 2).toUpperCase()}
+            </span>
+            <span className={styles.coverHint}>{count}</span>
+          </div>
+        )}
+
+        <div className={styles.body}>
+          <div className={styles.titleRow}>
+            <h3 className={styles.title}>{group.title}</h3>
+            <span className={styles.year}>{count}</span>
+          </div>
+
+          <p className={styles.tagline}>
+            {group.projects.map((project) => project.title).join(" · ")}
+          </p>
+
+          <div className={styles.meta}>
+            {languages.map((language) => (
+              <span key={language} className={styles.metaItem}>
+                <span className={styles.languageDot} />
+                {language}
+              </span>
+            ))}
+            <span className={styles.metaItem}>Updated {updated}</span>
+          </div>
+
+          <span className={styles.links}>
+            <span className={styles.linkPrimary}>
+              {open ? "Hide repos" : `Show ${count}`}
+            </span>
+          </span>
+        </div>
+      </button>
+
+      {open && (
+        // Spans the whole grid, so it lands on its own row directly under the
+        // card's row instead of squeezing into one column.
+        <div id={panelId} className={styles.groupPanel}>
+          {group.projects.map((project) => (
+            <ProjectCard key={project.slug} project={project} />
+          ))}
+        </div>
+      )}
+    </>
+  );
+}
+
+/**
  * The curated half of the site: repositories named in the server's PROJECT_REPOS
  * whitelist, on the same measure as the overview so the two sections read as one
  * column. Each card is a cover plus the metadata from the repo's `.portfolio`
@@ -142,15 +237,19 @@ export function Projects() {
         </div>
       )}
 
-      {projects.status === "ready" && projects.data.projects.length === 0 && (
+      {projects.status === "ready" && projects.data.entries.length === 0 && (
         <p className={styles.notice}>No projects are published yet.</p>
       )}
 
-      {projects.status === "ready" && projects.data.projects.length > 0 && (
+      {projects.status === "ready" && projects.data.entries.length > 0 && (
         <div className={styles.cards}>
-          {projects.data.projects.map((project) => (
-            <ProjectCard key={project.slug} project={project} />
-          ))}
+          {projects.data.entries.map((entry) =>
+            entry.kind === "group" ? (
+              <GroupCard key={`group-${entry.group.slug}`} group={entry.group} />
+            ) : (
+              <ProjectCard key={entry.project.slug} project={entry.project} />
+            ),
+          )}
         </div>
       )}
     </div>

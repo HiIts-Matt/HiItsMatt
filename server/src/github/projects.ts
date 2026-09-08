@@ -3,7 +3,13 @@ import { env } from "../env.js";
 import { getReadmeMarkdown } from "./catalog.js";
 import { readmeExcerpt } from "./markdown.js";
 import { fetchRepo, fetchRepoDirectory, fetchRepoFile, GitHubError } from "./rest.js";
-import type { Project, ProjectLink, ProjectMedia, ProjectMediaKind } from "./types.js";
+import type {
+  Project,
+  ProjectEntry,
+  ProjectLink,
+  ProjectMedia,
+  ProjectMediaKind,
+} from "./types.js";
 
 /**
  * The curated projects page: the repositories named in PROJECT_REPOS, public or
@@ -274,7 +280,7 @@ type ProjectAssets = {
 };
 
 type ProjectIndex = {
-  projects: Project[];
+  entries: ProjectEntry[];
   assets: Record<string, ProjectAssets>;
 };
 
@@ -390,20 +396,27 @@ async function buildProject(
 }
 
 /**
- * Whitelist order is display order, so the index is built in sequence rather
- * than sorted afterwards. A repository that fails to load is dropped with a
- * warning: one unreachable project must not blank the whole page.
+ * Whitelist order is display order, so entries are assembled in sequence rather
+ * than sorted afterwards. Repositories are built in one pass — a group's members
+ * are no different from a top-level entry — and anything that fails to load is
+ * dropped with a warning: one unreachable project must not blank the page, and a
+ * group whose every member is unreachable is not a card at all.
  */
 function getProjectIndex(): Promise<ProjectIndex> {
   return cached("projects", CONTENT_TTL_MS, async () => {
-    const built = await Promise.allSettled(
-      env.projectRepos.map((target) => buildProject(target.owner, target.name)),
+    const targets = env.projectEntries.flatMap((entry) =>
+      entry.kind === "repo" ? [entry.repo] : entry.repos,
     );
 
-    const index: ProjectIndex = { projects: [], assets: {} };
+    const built = await Promise.allSettled(
+      targets.map((target) => buildProject(target.owner, target.name)),
+    );
+
+    const index: ProjectIndex = { entries: [], assets: {} };
+    const byTarget: Record<string, Project> = {};
 
     for (const [position, result] of built.entries()) {
-      const target = env.projectRepos[position];
+      const target = targets[position];
 
       if (result.status === "rejected") {
         console.warn(
@@ -413,20 +426,54 @@ function getProjectIndex(): Promise<ProjectIndex> {
         continue;
       }
 
-      if (!result.value) {
+      if (!result.value || !target) {
         continue;
       }
 
-      index.projects.push(result.value.project);
+      byTarget[`${target.owner}/${target.name}`.toLowerCase()] = result.value.project;
       index.assets[result.value.project.slug] = result.value.assets;
+    }
+
+    for (const entry of env.projectEntries) {
+      if (entry.kind === "repo") {
+        const project = byTarget[`${entry.repo.owner}/${entry.repo.name}`.toLowerCase()];
+
+        if (project) {
+          index.entries.push({ kind: "project", project });
+        }
+
+        continue;
+      }
+
+      const projects = entry.repos.flatMap((repo) => {
+        const project = byTarget[`${repo.owner}/${repo.name}`.toLowerCase()];
+
+        return project ? [project] : [];
+      });
+
+      if (projects.length === 0) {
+        continue;
+      }
+
+      index.entries.push({
+        kind: "group",
+        group: {
+          slug: entry.title
+            .toLowerCase()
+            .replace(/[^a-z0-9]+/g, "-")
+            .replace(/^-|-$/g, ""),
+          title: entry.title,
+          projects,
+        },
+      });
     }
 
     return index;
   });
 }
 
-export async function getProjects(): Promise<Project[]> {
-  return (await getProjectIndex()).projects;
+export async function getProjectEntries(): Promise<ProjectEntry[]> {
+  return (await getProjectIndex()).entries;
 }
 
 export type ProjectMediaStream = {

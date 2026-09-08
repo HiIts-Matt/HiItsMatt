@@ -31,6 +31,37 @@
   background: var(--c-surface);
 }
 
+/*
+ * The group card is a button, so it opts back into the card's own alignment and
+ * announces itself as pressable; its panel spans the grid to land on the row
+ * below rather than inside one column.
+ */
+.groupCard {
+  text-align: start;
+  cursor: pointer;
+  transition:
+    border-color 200ms ease,
+    background 200ms ease;
+}
+
+.groupCard:hover,
+.groupCardOpen {
+  border-color: var(--c-border-strong);
+  background: var(--c-surface-hover);
+}
+
+.groupPanel {
+  grid-column: 1 / -1;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 20rem), 1fr));
+  gap: clamp(1rem, 2vw, 1.5rem);
+  padding: clamp(0.75rem, 1.5vw, 1.15rem);
+  border: 1px solid var(--c-border);
+  border-radius: var(--radius);
+  /* Reads as an opened drawer, not another sibling card. */
+  background: rgb(255 255 255 / 2%);
+}
+
 .cover {
   position: relative;
   display: grid;

@@ -1,51 +1,83 @@
-/*
- * Bleeds past the section padding so cards run off both edges, and masks them
- * into the background instead of ending on a hard cut.
- */
-.viewport {
-  position: relative;
-  margin-inline: calc(var(--gutter) * -1);
-  overflow: hidden;
-  mask-image: linear-gradient(90deg, transparent, #000 6%, #000 94%, transparent);
+.belt {
+  display: grid;
+  gap: 1rem;
+  min-width: 0;
 }
 
-.track {
+.header {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 1rem;
+  padding-block-start: clamp(0.5rem, 2vh, 1.25rem);
+  border-block-start: 1px solid var(--c-border);
+}
+
+.title {
+  font-family: var(--font-body);
+  font-size: 0.72rem;
+  font-weight: 600;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--c-faint);
+}
+
+.toggle {
+  padding: 0.3rem 0.85rem;
+  border: 1px solid var(--c-border-strong);
+  border-radius: 999px;
+  font-size: 0.74rem;
+  letter-spacing: 0.04em;
+  color: var(--c-muted);
+  white-space: nowrap;
+  transition:
+    color 200ms ease,
+    border-color 200ms ease,
+    background 200ms ease;
+}
+
+.toggle:hover {
+  color: var(--c-text);
+  background: var(--c-surface-hover);
+}
+
+/*
+ * A real scroller, not just an animation: the drift writes `scrollLeft` (see
+ * useDrift), so wheel, drag and swipe browse the same rail. The block padding
+ * is what keeps a hovered card's lift from being clipped by the mask, and the
+ * mask itself fades the ends into the background instead of cutting them.
+ */
+.rail {
   display: flex;
   gap: 1rem;
-  width: max-content;
-  padding-inline: var(--gutter);
-  animation: marquee var(--duration, 60s) linear infinite;
+  padding-block: 0.5rem;
+  overflow-x: auto;
+  overflow-y: hidden;
+  overscroll-behavior-x: contain;
+  scrollbar-width: thin;
+  scrollbar-color: var(--c-border-strong) transparent;
+  mask-image: linear-gradient(90deg, transparent, #000 4%, #000 96%, transparent);
 }
 
-/* Hover and keyboard focus both stop the belt so a card can be read or clicked. */
-.viewport:hover .track,
-.track:focus-within {
-  animation-play-state: paused;
+/* All of them at once, for reading rather than chasing. */
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 17rem), 1fr));
+  gap: 1rem;
+  padding-block: 0.5rem;
 }
 
-@keyframes marquee {
-  to {
-    /* The list is rendered twice; -50% is exactly one full set. */
-    translate: -50% 0;
-  }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .track {
-    animation: none;
-    /* Without the belt, the row has to be reachable by hand. */
-    padding-inline-end: calc(var(--gutter) * 2);
-  }
-
-  .viewport {
-    overflow-x: auto;
-  }
+.grid .card {
+  width: auto;
 }
 
 .card {
   display: grid;
   grid-template-rows: auto auto 1fr auto;
   gap: 0.7rem;
+  /* The rail is the scroll container now, so cards must overflow it rather
+     than shrinking to fit; the grid overrides both. */
+  flex: none;
   width: 320px;
   padding: 0.75rem;
   border: 1px solid var(--c-border);
@@ -138,6 +170,7 @@
 }
 
 .skeletonCard {
+  flex: none;
   width: 320px;
   height: 300px;
   border-radius: var(--radius);

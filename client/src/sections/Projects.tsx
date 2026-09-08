@@ -1,5 +1,4 @@
-import { useState } from "react";
-import type { Project, ProjectMedia } from "server";
+import type { Project } from "server";
 
 import { SectionTitle } from "../components/SectionTitle";
 import { useResource } from "../hooks/useResource";
@@ -7,91 +6,48 @@ import { api, apiUrl, unwrap } from "../lib/api";
 import { cx } from "../lib/cx";
 import styles from "./Projects.module.css";
 
-function MediaFrame({ media, title }: { media: ProjectMedia; title: string }) {
-  if (media.kind === "video") {
-    return (
-      <video
-        className={styles.media}
-        src={apiUrl(media.url)}
-        poster={media.posterUrl ? apiUrl(media.posterUrl) : undefined}
-        controls
-        playsInline
-        // Videos are streamed through the API; only load the first frames until
-        // someone actually presses play.
-        preload="metadata"
-      />
-    );
+/**
+ * A still, even for clips: a grid of autoplaying videos is a lot of bytes for a
+ * thumbnail, so a video only shows its cover if the manifest named a poster.
+ */
+function coverImage(project: Project): { url: string; alt: string } | null {
+  for (const media of project.media) {
+    const url = media.kind === "image" ? media.url : media.posterUrl;
+    if (url) return { url, alt: media.alt ?? `${project.title} cover` };
   }
 
-  return (
-    <img
-      className={styles.media}
-      src={apiUrl(media.url)}
-      alt={media.alt ?? `${title} screenshot`}
-      loading="lazy"
-      decoding="async"
-    />
-  );
+  return null;
 }
 
-function ProjectCase({ project }: { project: Project }) {
-  const [index, setIndex] = useState(0);
-  const active = project.media[index];
-
+function ProjectCard({ project }: { project: Project }) {
+  const cover = coverImage(project);
   const updated = new Date(project.pushedAt).toLocaleDateString(undefined, {
     month: "short",
     year: "numeric",
   });
 
   return (
-    <article className={styles.case}>
-      <div className={styles.gallery}>
-        {active ? (
-          <>
-            <div className={styles.frame}>
-              <MediaFrame media={active} title={project.title} />
-            </div>
-
-            {active.caption && <p className={styles.caption}>{active.caption}</p>}
-
-            {project.media.length > 1 && (
-              <div className={styles.thumbs}>
-                {project.media.map((media, position) => {
-                  const poster = media.kind === "image" ? media.url : media.posterUrl;
-
-                  return (
-                    <button
-                      key={media.url}
-                      type="button"
-                      className={cx(styles.thumb, position === index && styles.thumbActive)}
-                      aria-label={`Show ${project.title} media ${position + 1} of ${project.media.length}`}
-                      aria-current={position === index ? "true" : undefined}
-                      onClick={() => setIndex(position)}
-                    >
-                      {poster ? (
-                        <img src={apiUrl(poster)} alt="" loading="lazy" decoding="async" />
-                      ) : (
-                        <span className={styles.thumbGlyph} aria-hidden="true">
-                          ▶
-                        </span>
-                      )}
-                    </button>
-                  );
-                })}
-              </div>
-            )}
-          </>
-        ) : (
-          // A whitelisted repo publishes before its assets exist; say so quietly
-          // instead of leaving a hole in the layout.
-          <div className={cx(styles.frame, styles.frameEmpty)}>
-            <span className={styles.frameInitials} aria-hidden="true">
-              {project.title.slice(0, 2).toUpperCase()}
-            </span>
-            <span className={styles.frameHint}>No media yet</span>
-          </div>
-        )}
-      </div>
+    <article className={styles.card}>
+      {cover ? (
+        <div className={styles.cover}>
+          <img
+            className={styles.media}
+            src={apiUrl(cover.url)}
+            alt={cover.alt}
+            loading="lazy"
+            decoding="async"
+          />
+        </div>
+      ) : (
+        // A whitelisted repo publishes before its assets exist; say so quietly
+        // instead of leaving a hole in the grid.
+        <div className={cx(styles.cover, styles.coverEmpty)}>
+          <span className={styles.coverInitials} aria-hidden="true">
+            {project.title.slice(0, 2).toUpperCase()}
+          </span>
+          <span className={styles.coverHint}>No media yet</span>
+        </div>
+      )}
 
       <div className={styles.body}>
         <div className={styles.titleRow}>
@@ -125,9 +81,15 @@ function ProjectCase({ project }: { project: Project }) {
           <span className={styles.metaItem}>Updated {updated}</span>
         </div>
 
+        {/* Pushed to the bottom of the card so every row of links lines up. */}
         <div className={styles.links}>
           {project.homepage && (
-            <a className={styles.linkPrimary} href={project.homepage} target="_blank" rel="noreferrer">
+            <a
+              className={styles.linkPrimary}
+              href={project.homepage}
+              target="_blank"
+              rel="noreferrer"
+            >
               Visit
             </a>
           )}
@@ -155,9 +117,11 @@ function ProjectCase({ project }: { project: Project }) {
 
 /**
  * The curated half of the site: repositories named in the server's PROJECT_REPOS
- * whitelist, presented with the images and clips committed to each one under
- * `.portfolio/`. Distinct from the overview's carousel, which lists every public
- * repo automatically and links straight out to GitHub.
+ * whitelist, on the same measure as the overview so the two sections read as one
+ * column. Each card is a cover plus the metadata from the repo's `.portfolio`
+ * manifest; the full media set belongs to the per-project page. Distinct from the
+ * overview's carousel, which lists every public repo automatically and links
+ * straight out to GitHub.
  */
 export function Projects() {
   const projects = useResource("projects", () =>
@@ -171,9 +135,9 @@ export function Projects() {
       {projects.status === "error" && <p className={styles.notice}>{projects.message}</p>}
 
       {projects.status === "loading" && (
-        <div className={styles.cases}>
-          {[0, 1].map((index) => (
-            <div key={index} className={styles.skeletonCase} />
+        <div className={styles.cards}>
+          {[0, 1, 2].map((index) => (
+            <div key={index} className={styles.skeletonCard} />
           ))}
         </div>
       )}
@@ -183,9 +147,9 @@ export function Projects() {
       )}
 
       {projects.status === "ready" && projects.data.projects.length > 0 && (
-        <div className={styles.cases}>
+        <div className={styles.cards}>
           {projects.data.projects.map((project) => (
-            <ProjectCase key={project.slug} project={project} />
+            <ProjectCard key={project.slug} project={project} />
           ))}
         </div>
       )}

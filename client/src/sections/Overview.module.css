@@ -2,21 +2,16 @@
  * This section is taller than one screen (see `Section.tall`): the profile grid
  * fills the first viewport and the repo belt sits directly below it, so the
  * layout no longer has to shrink itself to fit.
+ *
+ * One measure for the whole section — profile grid, belt and carousel alike —
+ * matching the projects grid below it.
  */
 .layout {
   display: grid;
   gap: clamp(1.75rem, 5vh, 3.5rem);
-  width: 100%;
-  min-height: 0;
-}
-
-/* Everything except the belt shares one measure, centred in the content column. */
-.header,
-.columns,
-.beltHeader,
-.notice {
   width: min(100%, 1320px);
   margin-inline: auto;
+  min-height: 0;
 }
 
 .columns {
@@ -142,35 +137,6 @@
   letter-spacing: 0.2em;
   text-transform: uppercase;
   color: var(--c-faint);
-}
-
-.belt {
-  display: grid;
-  gap: 1rem;
-  min-width: 0;
-}
-
-.beltHeader {
-  display: flex;
-  align-items: baseline;
-  justify-content: space-between;
-  gap: 1rem;
-  padding-block-start: clamp(0.5rem, 2vh, 1.25rem);
-  border-block-start: 1px solid var(--c-border);
-}
-
-.beltHint {
-  font-size: 0.72rem;
-  letter-spacing: 0.14em;
-  text-transform: uppercase;
-  color: var(--c-faint);
-}
-
-/* The belt itself is animation-driven; without motion the hint is a lie. */
-@media (prefers-reduced-motion: reduce) {
-  .beltHint {
-    display: none;
-  }
 }
 
 .skeleton {

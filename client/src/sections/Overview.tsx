@@ -19,7 +19,7 @@ export function Overview() {
 
   return (
     <div className={styles.layout}>
-      <SectionTitle id="overview" className={styles.header} />
+      <SectionTitle id="overview" />
 
       <div className={styles.columns}>
         <article className={styles.card}>
@@ -117,15 +117,9 @@ export function Overview() {
       </div>
 
       {/* The automatic index of everything public, directly under the profile it
-          belongs to. Curated work lives one section further down. */}
-      <section className={styles.belt} aria-label="Public repositories">
-        <div className={styles.beltHeader}>
-          <h3 className={styles.cardTitle}>Every public repository</h3>
-          <p className={styles.beltHint}>Hover to pause</p>
-        </div>
-
-        <RepoCarousel />
-      </section>
+          belongs to; it carries its own heading and view toggle. Curated work
+          lives one section further down. */}
+      <RepoCarousel />
     </div>
   );
 }

@@ -16,7 +16,7 @@
  * scrolling working.
  *
  * `scroll-snap-stop: always` on the sections is what makes a hard flick land on
- * the next section instead of flying past two of them — it is the native answer
+ * the next section instead of flying past two of them â€” it is the native answer
  * to wheel hijacking.
  */
 html {
@@ -92,6 +92,19 @@ ul {
 }
 
 @media (prefers-reduced-motion: reduce) {
+  /*
+   * Collapses the transition mechanism at the root: with no band the shader
+   * covers exactly the viewport again and there is nothing for the ink cover
+   * to hide, so the intro is one plain screen handed straight to the overview.
+   *
+   * The handover's own timing is zeroed in JS rather than here — the delay that
+   * sequences its two halves is not a duration, so the blanket override below
+   * cannot reach it. See Landing.
+   */
+  :root {
+    --edge-band: 0px;
+  }
+
   *,
   *::before,
   *::after {

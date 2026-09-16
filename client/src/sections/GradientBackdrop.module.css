@@ -1,7 +1,10 @@
+/*
+ * Fills whatever box the layer gives it — one viewport tall inside the intro
+ * page's own bounds, plus the transition band below (see IntroBackdrop).
+ */
 .backdrop {
   position: absolute;
   inset: 0;
-  z-index: 0;
   overflow: hidden;
   background: var(--c-ink);
 }
@@ -31,10 +34,20 @@
    */
   --stage-aspect: 1.35;
 
+  /*
+   * The cover box is a viewport plus the band, not just a viewport: the
+   * transition edge is cut out of gradient that continues below the intro's
+   * edge, so that gradient has to exist. Cover-scaling a taller box zooms the
+   * shader in by the band's share of the viewport — a few percent on a soft
+   * gradient, and it moves the crop away from the plane edge rather than
+   * towards it.
+   */
+  --stage-height: calc(100dvh + var(--edge-band));
+
   position: absolute;
   inset-block-start: 50%;
   inset-inline-start: 50%;
   translate: -50% -50%;
-  width: max(100vw, calc(100dvh * var(--stage-aspect)));
-  height: max(100dvh, calc(100vw / var(--stage-aspect)));
+  width: max(100vw, calc(var(--stage-height) * var(--stage-aspect)));
+  height: max(var(--stage-height), calc(100vw / var(--stage-aspect)));
 }

@@ -1,0 +1,54 @@
+/*
+ * One screen of intro plus the band underneath it. Absolute inside the intro's
+ * page layer — not fixed, and not inside the page's scroller — so the whole
+ * layer travels with the page, which is what keeps the edge welded to the
+ * background it belongs to instead of sliding against it.
+ *
+ * One screen, not the page's own box: the page is exactly a screen tall, but a
+ * percentage of it would have to wait for that box to be laid out, and the
+ * shader canvas measures its container once, on mount. Viewport units resolve
+ * at style time, so the band's depth hangs exactly one band below the bottom of
+ * the screen from the first frame. At rest the stage clips it away; as the page
+ * slides up over the next one the band is uncovered, so the intro leaves behind
+ * a chevron edge rather than a straight one.
+ */
+.layer {
+  position: absolute;
+  inset-block-start: 0;
+  inset-inline: 0;
+  z-index: 0;
+  height: calc(100dvh + var(--edge-band));
+  overflow: hidden;
+  pointer-events: none;
+  background: var(--c-ink);
+}
+
+.fallback {
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(120% 90% at 12% 60%, #2a0435 0%, #0a0330 45%, var(--c-ink) 100%);
+}
+
+/*
+ * The ink cover. It hides the slice of canvas below the intro's screen, and the
+ * chevron outline is a hole in it — so the edge is never drawn, it is only
+ * uncovered. Sits at the bottom of the layer, exactly the height the canvas was
+ * oversized by.
+ *
+ * No `viewBox`: with the SVG left at its CSS size, one user unit is one CSS
+ * pixel, so the outline geometry is computed in the same pixels the resize
+ * observer reports and never has to be rescaled.
+ */
+.band {
+  position: absolute;
+  inset-block-end: 0;
+  inset-inline-start: 0;
+  /*
+   * Explicit, not `inset-inline: 0`: an `<svg>` is a replaced element, so with
+   * an auto width it takes its 300px intrinsic size and ignores the second
+   * inset instead of stretching.
+   */
+  width: 100%;
+  height: var(--edge-band);
+  /* Written once per resize; nothing here changes while scrolling. */
+}

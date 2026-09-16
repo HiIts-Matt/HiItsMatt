@@ -26,6 +26,24 @@
   --gutter: clamp(1.25rem, 5vw, 6rem);
   --radius: 14px;
   /*
+   * Depth of the chevron the intro's background ends on. The canvas covers one
+   * screen plus this band, an ink cover hides the band, and the chevron is a
+   * hole in that cover — so this is how far the gradient reaches below the
+   * hero. Zeroed for reduced motion in global.css, which collapses the whole
+   * mechanism back to a plain full-screen backdrop.
+   *
+   * The band hangs below the intro page's own box, off the bottom of the
+   * screen, so the chevron is uncovered by the page sliding up over the next
+   * one (see Landing.module.css).
+   *
+   * Deep enough that a full-width chevron reads as a chevron rather than as a
+   * crooked edge. Costs almost nothing — the cover box was already
+   * aspect-bound, so the shader's pixel count barely moves (see
+   * GradientBackdrop.module.css).
+   */
+  --edge-band: clamp(6rem, 22vh, 15rem);
+
+  /*
    * Space the non-centred sections reserve on the left: the rail's own width
    * plus its inset from the viewport edge, so nothing slides underneath it.
    */

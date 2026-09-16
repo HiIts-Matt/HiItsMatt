@@ -18,9 +18,11 @@
   },
   "dependencies": {
     "@hono/node-server": "^2.1.1",
-    "hono": "^4.13.5"
+    "hono": "^4.13.5",
+    "markdown-it": "^15.0.2"
   },
   "devDependencies": {
+    "@types/markdown-it": "^14.2.0",
     "@types/node": "^22.14.0",
     "tsx": "^4.23.13",
     "typescript": "^7.0.2"

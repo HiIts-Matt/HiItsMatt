@@ -1,5 +1,6 @@
 import { cached } from "../cache.js";
 import { env } from "../env.js";
+import { renderArticle } from "./article.js";
 import { getReadmeMarkdown } from "./catalog.js";
 import { readmeExcerpt } from "./markdown.js";
 import { fetchRepo, fetchRepoDirectory, fetchRepoFile, GitHubError } from "./rest.js";
@@ -18,6 +19,7 @@ import type {
  *
  *   .portfolio/
  *     project.json      optional metadata (see `Manifest` below)
+ *     article.md        optional body of the project's own page (see article.ts)
  *     media/            images and videos, shown in filename order
  *       01-hero.png
  *       02-tour.mp4
@@ -33,6 +35,7 @@ import type {
  */
 const PORTFOLIO_ROOT = ".portfolio";
 const MANIFEST_PATH = `${PORTFOLIO_ROOT}/project.json`;
+const ARTICLE_PATH = `${PORTFOLIO_ROOT}/article.md`;
 const MEDIA_ROOT = `${PORTFOLIO_ROOT}/media`;
 
 const METADATA_TTL_MS = 5 * 60 * 1000;
@@ -46,6 +49,8 @@ const MAX_MEDIA_FILES = 24;
  * as long as it takes to arrive. Anything this large belongs on a CDN.
  */
 const MAX_MEDIA_BYTES = 40 * 1024 * 1024;
+/** An article is prose; past this it is a data file that took the wrong name. */
+const MAX_ARTICLE_CHARS = 256 * 1024;
 
 /**
  * The extension is the whole allowlist: it decides both what discovery picks up
@@ -474,6 +479,60 @@ function getProjectIndex(): Promise<ProjectIndex> {
 
 export async function getProjectEntries(): Promise<ProjectEntry[]> {
   return (await getProjectIndex()).entries;
+}
+
+/**
+ * The long-form body of one project's page: `.portfolio/article.md`, rendered
+ * by this server (see article.ts). `null` means the repository publishes no
+ * article, which is ordinary — the page still has its media, its manifest copy
+ * and its GitHub metadata.
+ *
+ * Separate from the projects payload rather than part of it: the list page
+ * shows none of this, and folding it in would fetch every project's prose to
+ * render a grid of cards.
+ */
+export async function getProjectArticle(slug: string): Promise<string | null> {
+  const index = await getProjectIndex();
+  const assets = index.assets[slug.toLowerCase()];
+
+  if (!assets) {
+    throw new GitHubError(`"${slug}" is not one of the published projects.`, 404);
+  }
+
+  const { owner, name, paths } = assets;
+
+  return await cached(`project-article:${owner}/${name}`, CONTENT_TTL_MS, async () => {
+    const response = await fetchRepoFile(owner, name, ARTICLE_PATH);
+
+    if (!response) {
+      return null;
+    }
+
+    const markdown = await response.text();
+
+    // Prose, not a data file: something this size is a mistake, and rendering
+    // it would hold the process on one request.
+    if (markdown.length > MAX_ARTICLE_CHARS) {
+      console.warn(
+        `Ignoring ${owner}/${name}/${ARTICLE_PATH}: ${Math.round(markdown.length / 1024)} KB exceeds the ${MAX_ARTICLE_CHARS / 1024} KB article limit.`,
+      );
+
+      return null;
+    }
+
+    const mediaBase = `/api/github/projects/${encodeURIComponent(slug.toLowerCase())}/media`;
+
+    return renderArticle(markdown, {
+      resolve: (src) => {
+        const path = resolveAssetPath(src, paths);
+        const kind = path ? mediaTypeFor(path)?.kind : undefined;
+
+        return path && kind
+          ? { kind, url: `${mediaBase}/${path.split("/").map(encodeURIComponent).join("/")}` }
+          : undefined;
+      },
+    });
+  });
 }
 
 export type ProjectMediaStream = {

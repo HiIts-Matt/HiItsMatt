@@ -6,7 +6,7 @@ import {
   getReadmeHtml,
   getRepos,
 } from "../github/catalog.js";
-import { getProjectEntries, openProjectMedia } from "../github/projects.js";
+import { getProjectArticle, getProjectEntries, openProjectMedia } from "../github/projects.js";
 
 // Chained into a single expression: separate `githubRoutes.get(...)` statements
 // would drop the accumulated types that the client's RPC client reads through
@@ -22,6 +22,11 @@ export const githubRoutes = new Hono()
     c.json({ html: await getReadmeHtml(c.req.param("repo")) }),
   )
   .get("/projects", async (c) => c.json({ entries: await getProjectEntries() }))
+  // The body of one project's page, rendered from its own `.portfolio/article.md`.
+  // null means the repository publishes no article; an unknown slug is a 404.
+  .get("/projects/:slug/article", async (c) =>
+    c.json({ html: await getProjectArticle(c.req.param("slug")) }),
+  )
   // Assets live behind this server rather than on raw.githubusercontent.com so
   // that private project repositories work without handing a token to the
   // browser. The wildcard is the asset's path inside `.portfolio/`.

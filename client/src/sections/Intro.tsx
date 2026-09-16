@@ -1,14 +1,7 @@
-import { Suspense, lazy } from "react";
 import type { CSSProperties } from "react";
 
-import { scrollToSection } from "../hooks/useActiveSection";
-import { usePrefersReducedMotion } from "../hooks/usePrefersReducedMotion";
 import { cx } from "../lib/cx";
 import styles from "./Intro.module.css";
-
-// The shader backdrop drags in three.js; lazily importing it keeps that weight
-// out of the entry chunk so the headline paints first.
-const GradientBackdrop = lazy(() => import("./GradientBackdrop"));
 
 /**
  * Hard line breaks, one array per line. The reveal beat is a running index
@@ -26,43 +19,41 @@ const HEADING = LINES.flat()
 type IntroProps = {
   /** Held false until the loader is offscreen so the stagger is never missed. */
   revealed: boolean;
-  onBackdropReady: () => void;
+  /** Hands over to the next page; the cue is a page step, not a scroll. */
+  onAdvance: () => void;
 };
 
-export function Intro({ revealed, onBackdropReady }: IntroProps) {
-  const prefersReducedMotion = usePrefersReducedMotion();
-
+/**
+ * Content only: the gradient behind it belongs to `IntroBackdrop`, which the
+ * page takes as its backdrop rather than as content, because the transition
+ * band has to paint past this page's bottom edge.
+ */
+export function Intro({ revealed, onAdvance }: IntroProps) {
   return (
-    <>
-      <Suspense fallback={<div className={styles.fallback} aria-hidden="true" />}>
-        <GradientBackdrop animate={!prefersReducedMotion} onReady={onBackdropReady} />
-      </Suspense>
-
-      <div className={cx(styles.content, revealed && styles.playing)}>
-        {/* The words are separate elements for the stagger, so the accessible
-            name is stated once here rather than reconstructed from spans. */}
-        <h1 className={styles.title} aria-label={HEADING}>
-          {LINES.map((line) => (
-            <span key={line[0]?.text} className={styles.line} aria-hidden="true">
-              {line.map((word) => (
-                <span key={word.text} className={styles.word}>
-                  <span
-                    className={styles.wordInner}
-                    style={{ "--index": word.beat } as CSSProperties}
-                  >
-                    {word.text}
-                  </span>
+    <div className={cx(styles.content, revealed && styles.playing)}>
+      {/* The words are separate elements for the stagger, so the accessible
+          name is stated once here rather than reconstructed from spans. */}
+      <h1 className={styles.title} aria-label={HEADING}>
+        {LINES.map((line) => (
+          <span key={line[0]?.text} className={styles.line} aria-hidden="true">
+            {line.map((word) => (
+              <span key={word.text} className={styles.word}>
+                <span
+                  className={styles.wordInner}
+                  style={{ "--index": word.beat } as CSSProperties}
+                >
+                  {word.text}
                 </span>
-              ))}
-            </span>
-          ))}
-        </h1>
+              </span>
+            ))}
+          </span>
+        ))}
+      </h1>
 
-        <button type="button" className={styles.cue} onClick={() => scrollToSection("overview")}>
-          <span className={styles.cueRail} aria-hidden="true" />
-          Scroll
-        </button>
-      </div>
-    </>
+      <button type="button" className={styles.cue} onClick={onAdvance}>
+        <span className={styles.cueRail} aria-hidden="true" />
+        Scroll
+      </button>
+    </div>
   );
 }

@@ -1,15 +1,209 @@
-.section {
+/*
+ * The animated layer. Every page sits in the same box — the viewport — and the
+ * handover moves them through each other rather than through a scroll offset.
+ *
+ * Overflow is deliberately left visible: the intro's edge band hangs below its
+ * page, and the stage is what clips it at the viewport (see Landing.module.css),
+ * so the chevron is invisible at rest and is uncovered by the slide itself.
+ */
+.page {
+  /*
+   * How far past the viewport edge this page has to travel to be gone. Zero for
+   * a page whose content stops at its own box; the intro sets it to the band
+   * depth, because its backdrop hangs below the box and a page that stopped at
+   * exactly -100% would leave that band stranded across the top of the screen
+   * while the next page expands underneath it.
+   */
+  --page-overshoot: 0px;
+
+  position: absolute;
+  inset: 0;
+  /*
+   * Every page is an opaque surface, whatever its content paints. Two pages are
+   * on screen at once during a handover, one over the other, and a page that
+   * only sets text colour would let the dimmed page underneath read straight
+   * through it — the slide would look like a cross-fade of two layouts rather
+   * than one sheet moving off another. The intro paints its own gradient over
+   * this; the rest are ink on ink.
+   */
+  background: var(--c-ink);
+}
+
+/*
+ * `visibility`, not `display`: a hidden page keeps its layout, so its scroller
+ * keeps the position it was left at, its images stay decoded and the intro's
+ * shader canvas keeps the size its resize observer measured. Coming back to a
+ * page costs nothing.
+ */
+.page[data-role="hidden"] {
+  visibility: hidden;
+  pointer-events: none;
+}
+
+.page[data-role="current"] {
+  z-index: 1;
+}
+
+.page[data-role="leaving"],
+.page[data-role="entering"] {
+  will-change: translate, scale;
+}
+
+/*
+ * The dim is on the content, never on the page. A filter over the whole layer
+ * takes the page's own ink with it, and a dimmed ink is a different colour from
+ * the ink it sits on — the page underneath reads as a dark rectangle painted on
+ * the stage rather than as the same surface held further back. Filtering the
+ * scroller leaves the background exactly the colour it always was and takes the
+ * light off what is drawn on it, which is what going out of focus looks like.
+ *
+ * The intro's backdrop is outside the scroller and so keeps its full colour:
+ * it is background, and it is never the page held underneath anyway.
+ */
+.page[data-role="leaving"] .scroller,
+.page[data-role="entering"] .scroller {
+  will-change: filter;
+}
+
+/*
+ * Going down: the page leaves upwards over the next one, which is already
+ * sitting in place at nine-tenths size and dimmed, and only expands once the
+ * page above it has cleared the screen. The delay is the whole point — the two
+ * movements read as one handover instead of a cross-fade.
+ */
+.page[data-direction="down"][data-role="leaving"] {
+  z-index: 3;
+  animation: slide-out var(--page-slide) var(--page-ease-slide) both;
+}
+
+.page[data-direction="down"][data-role="entering"] {
+  z-index: 2;
+  animation: expand var(--page-settle) var(--page-ease-settle) var(--page-slide) both;
+}
+
+.page[data-direction="down"][data-role="entering"] .scroller {
+  animation: undim var(--page-settle) var(--page-ease-settle) var(--page-slide) both;
+}
+
+/*
+ * Going up is the same handover played backwards: the page you are on shrinks
+ * and dims, then the previous one slides back down over it. Same two beats,
+ * opposite order, so the pair is reversible rather than two unrelated effects
+ * that happen to share a direction.
+ *
+ * The one asymmetry is the overlap. Going down the slide starts immediately
+ * and there is nothing to wait for; going up the quiet beat is the one that
+ * comes first, and waiting the whole of it out before the slide reads as a
+ * stall between the two. So the slide starts while the shrink is still
+ * finishing, which costs neither movement any of its length.
+ */
+.page[data-direction="up"][data-role="leaving"] {
+  z-index: 2;
+  animation: shrink var(--page-settle) var(--page-ease-settle) both;
+}
+
+.page[data-direction="up"][data-role="leaving"] .scroller {
+  animation: dim var(--page-settle) var(--page-ease-settle) both;
+}
+
+.page[data-direction="up"][data-role="entering"] {
+  z-index: 3;
+  animation: slide-in var(--page-slide) var(--page-ease-slide)
+    calc(var(--page-settle) - var(--page-overlap)) both;
+}
+
+/*
+ * `both` fill is load-bearing on the delayed halves: it holds the arriving page
+ * at nine-tenths for the length of the slide, and holds the shrunken page there
+ * while the one above it comes down.
+ */
+@keyframes slide-out {
+  from {
+    translate: 0 0;
+  }
+  to {
+    translate: 0 calc(-100% - var(--page-overshoot));
+  }
+}
+
+@keyframes slide-in {
+  from {
+    translate: 0 calc(-100% - var(--page-overshoot));
+  }
+  to {
+    translate: 0 0;
+  }
+}
+
+@keyframes expand {
+  from {
+    scale: var(--page-scale);
+  }
+  to {
+    scale: 1;
+  }
+}
+
+@keyframes shrink {
+  from {
+    scale: 1;
+  }
+  to {
+    scale: var(--page-scale);
+  }
+}
+
+@keyframes undim {
+  from {
+    filter: brightness(var(--page-dim));
+  }
+  to {
+    filter: brightness(1);
+  }
+}
+
+@keyframes dim {
+  from {
+    filter: brightness(1);
+  }
+  to {
+    filter: brightness(var(--page-dim));
+  }
+}
+
+/*
+ * The page's own scroller. The document does not scroll at all any more, so
+ * every page carries its own overflow: the overview's repo belt and the
+ * projects list scroll here, natively, and the pager only takes a gesture over
+ * once this scroller has reached the end it is being pushed against.
+ *
+ * `contain` keeps that gesture inside the page — no scroll chaining to the
+ * document, and no pull-to-refresh or back-swipe fired by a swipe meant for the
+ * page.
+ */
+.scroller {
   position: relative;
-  height: 100dvh;
-  scroll-snap-align: start;
-  /* Forces a hard flick to settle on the next section instead of skipping it. */
-  scroll-snap-stop: always;
-  overflow: hidden;
-  display: grid;
-  align-content: center;
-  padding: clamp(2.5rem, 7vh, 5rem) var(--gutter);
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  overflow-y: auto;
+  overscroll-behavior-y: contain;
+  scrollbar-width: thin;
+  scrollbar-color: var(--c-border-strong) transparent;
+  padding: clamp(4rem, 12vh, 7rem) var(--gutter);
   /* Keep content clear of the floating nav rail on the left. */
   padding-inline-start: calc(var(--gutter) + var(--nav-width));
+}
+
+/*
+ * Content keeps its own height. A flex item in a fixed-height column is
+ * shrinkable by default, which in a scroller means the page's content is
+ * squeezed into one screen instead of overflowing it — the overview's grid rows
+ * collapse into each other rather than scrolling.
+ */
+.scroller > * {
+  flex: none;
 }
 
 /*
@@ -18,42 +212,27 @@
  * viewport.
  */
 .centered {
+  padding-block: clamp(2.5rem, 7vh, 5rem);
   padding-inline-start: var(--gutter);
-  justify-items: center;
+  align-items: center;
   text-align: center;
 }
 
 /*
- * Sections that carry more than one screen: the overview's profile grid plus
- * its repo belt, and the projects page's stack of case studies. The snap area
- * grows with the content, and because it is taller than the snapport the
- * browser stops snapping while it covers the viewport — the section scrolls
- * normally and the next one still snaps into place at its end.
+ * Auto margins rather than `justify-content: center`. A centred flex line that
+ * outgrows its scroller overflows in both directions and pushes its own top out
+ * of reach above the scrollport; auto margins collapse to zero instead, so a
+ * short viewport degrades to a plain scrollable page. This replaces the old
+ * `max-height` fallback the snapping layout needed.
  */
-.tall {
-  height: auto;
-  min-height: 100dvh;
-  overflow: visible;
-  align-content: start;
-  padding-block: clamp(4rem, 12vh, 7rem);
-}
-
-/*
- * Paired with the proximity-snap fallback in global.css: once the viewport is
- * too short to hold a section, the section must be allowed to grow and scroll
- * normally rather than clip its content.
- */
-@media (max-height: 620px) {
-  .section {
-    height: auto;
-    min-height: 100dvh;
-    overflow: visible;
-  }
+.centered > * {
+  margin-block: auto;
 }
 
 @media (max-width: 640px) {
-  .section {
+  .scroller {
     padding-inline-start: var(--gutter);
+    /* Clear of the nav bar that moves to the bottom edge on phones. */
     padding-block-end: calc(var(--gutter) + 3.5rem);
   }
 }

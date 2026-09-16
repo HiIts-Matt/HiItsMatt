@@ -44,6 +44,30 @@
   --edge-band: clamp(6rem, 22vh, 15rem);
 
   /*
+   * How far the arriving page is held back while the page above it leaves, and
+   * how dim it is held there. Both are what the handover has to sell: the page
+   * underneath has to read as further away — inset from the stage on all four
+   * sides and out of the light — so that expanding to size and back to full
+   * brightness is an arrival rather than a fade.
+   *
+   * A tenth is about as small as the inset can be and still be unmistakable at
+   * a glance; much more and the page reads as a thumbnail rather than as the
+   * page you are about to be on. Timing lives in usePager, next to the input
+   * lock that has to match it.
+   */
+  --page-scale: 0.9;
+  --page-dim: 0.62;
+
+  /*
+   * The slide is symmetric in and out — it starts and ends against the edge of
+   * the screen, so it is eased at both ends. The settle only ever decelerates:
+   * it begins the instant the page above clears, already in motion as far as
+   * the eye is concerned, and has nowhere to go but to rest.
+   */
+  --page-ease-slide: cubic-bezier(0.76, 0, 0.24, 1);
+  --page-ease-settle: cubic-bezier(0.22, 1, 0.36, 1);
+
+  /*
    * Space the non-centred sections reserve on the left: the rail's own width
    * plus its inset from the viewport edge, so nothing slides underneath it.
    */

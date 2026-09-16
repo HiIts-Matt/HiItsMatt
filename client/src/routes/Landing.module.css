@@ -1,0 +1,89 @@
+/*
+ * The stage the pages are dealt on.
+ *
+ * Fixed rather than a tall document: the pages are stacked in one viewport-sized
+ * box and the handover moves them through each other, so there is no scroll
+ * length left for the document to have. Each page scrolls inside itself.
+ *
+ * This is the only element that clips. A page deliberately does not — the
+ * intro's edge band hangs below its bottom edge, so the chevron is off the
+ * bottom of the screen at rest and is uncovered as the page slides up over the
+ * next one.
+ *
+ * Nothing behind the pages shows through except the ink they are dealt on,
+ * which is what the arriving page's nine-tenths inset reads against.
+ */
+.stage {
+  position: fixed;
+  inset: 0;
+  overflow: hidden;
+  /*
+   * No `contain`, deliberately. Size containment buys nothing on a box whose
+   * size comes from its insets, and `contain: strict` measurably breaks the
+   * intro: the shader canvas sizes itself once, from its container, and inside
+   * a size-contained subtree it reads zero and stays at its default 300x150
+   * with no gradient at all. Clipping is what this element is for, and
+   * `overflow` already does that.
+   */
+}
+
+/*
+ * Everything the handover's timing reaches. The stage carries the page
+ * animations and the nav rail leaves in step with the deck, so the two custom
+ * properties Landing publishes have to cover both — and a box around a fixed
+ * stage, a fixed rail and a fixed curtain would be a box around nothing.
+ */
+.root {
+  display: contents;
+}
+
+/*
+ * The three-page stack, as one object.
+ *
+ * A project's page is not a fourth page in the stack: the stack's own handover
+ * is vertical and holds one page's scroll against the next, while this is
+ * lateral and holds the whole stack against a document. Sliding the deck is
+ * also what keeps the page behind intact — every page keeps its scroll
+ * position, its decoded images and the intro's shader canvas, and coming back
+ * costs nothing at all.
+ */
+.deck {
+  position: absolute;
+  inset: 0;
+  transition: translate var(--page-slide) var(--page-ease-slide);
+}
+
+.deck[data-shifted] {
+  translate: -100% 0;
+}
+
+/*
+ * The project page, parked one viewport to the right and moving on the same
+ * clock: the two layers are one strip, so the deck leaving and the article
+ * arriving cannot drift apart.
+ *
+ * Opaque for the same reason a page is — the deck is still on screen beside
+ * it for the length of the slide.
+ */
+.detail {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  translate: 100% 0;
+  visibility: hidden;
+  background: var(--c-ink);
+  transition: translate var(--page-slide) var(--page-ease-slide);
+}
+
+/*
+ * `data-live` outlasts `data-open`: the layer stays visible while it slides
+ * back out, and is only taken out of the paint once it is offscreen and its
+ * content has been unmounted.
+ */
+.detail[data-live] {
+  visibility: visible;
+}
+
+.detail[data-open] {
+  translate: 0 0;
+}

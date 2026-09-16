@@ -11,30 +11,19 @@
 }
 
 /*
- * The document itself is the scrollport. Snapping here rather than on a nested
- * div keeps mobile URL-bar collapse, browser find-on-page and native keyboard
- * scrolling working.
+ * The landing page's stage is fixed and each of its pages scrolls inside itself
+ * (see Landing.module.css), so the document has no scroll length of its own
+ * there. The 404 route still scrolls normally, which is why overflow is left
+ * alone here rather than being clamped shut on the document.
  *
- * `scroll-snap-stop: always` on the sections is what makes a hard flick land on
- * the next section instead of flying past two of them â€” it is the native answer
- * to wheel hijacking.
+ * `overscroll-behavior-y: none` is the one thing the document has to say: a
+ * swipe meant for a page must not reach the browser and fire pull-to-refresh or
+ * a navigation gesture behind it.
  */
 html {
-  scroll-snap-type: y mandatory;
-  scroll-behavior: auto;
+  overscroll-behavior-y: none;
   background: var(--c-ink);
   color-scheme: dark;
-}
-
-/*
- * Mandatory snapping traps the user when a section is taller than the viewport,
- * which is exactly what happens on short landscape phones. Relax to proximity
- * there so overflowing content stays reachable.
- */
-@media (max-height: 620px) {
-  html {
-    scroll-snap-type: y proximity;
-  }
 }
 
 body {
@@ -86,7 +75,7 @@ ul {
   border-radius: 4px;
 }
 
-/* Sections take focus programmatically after nav jumps; never ring them. */
+/* Pages take focus on every handover; never ring them. */
 [tabindex="-1"]:focus {
   outline: none;
 }

@@ -1,8 +1,8 @@
 import { useState } from "react";
-import type { Project, ProjectGroup } from "server";
+import type { Project, ProjectEntry, ProjectGroup } from "server";
 
 import { SectionTitle } from "../components/SectionTitle";
-import { useResource } from "../hooks/useResource";
+import { useResource, type Resource } from "../hooks/useResource";
 import { api, apiUrl, unwrap } from "../lib/api";
 import { cx } from "../lib/cx";
 import styles from "./Projects.module.css";
@@ -20,7 +20,16 @@ function coverImage(project: Project): { url: string; alt: string } | null {
   return null;
 }
 
-function ProjectCard({ project }: { project: Project }) {
+type OpenProject = (slug: string) => void;
+
+/**
+ * The whole card is the target, but the link itself is the title: a block-level
+ * anchor around a card full of other links is invalid, and one around the cover
+ * alone would read as "image, link" to a screen reader. The title carries the
+ * href and a stretched pseudo-element carries the hit area (see
+ * `.open` in Projects.module.css); the links at the foot sit above it.
+ */
+function ProjectCard({ project, onOpen }: { project: Project; onOpen: OpenProject }) {
   const cover = coverImage(project);
   const updated = new Date(project.pushedAt).toLocaleDateString(undefined, {
     month: "short",
@@ -52,7 +61,21 @@ function ProjectCard({ project }: { project: Project }) {
 
       <div className={styles.body}>
         <div className={styles.titleRow}>
-          <h3 className={styles.title}>{project.title}</h3>
+          <h3 className={styles.title}>
+            <a
+              className={styles.open}
+              href={`#project/${project.slug}`}
+              onClick={(event) => {
+                // Modified clicks belong to the browser: a project page is a
+                // real URL, so opening one in a new tab has to keep working.
+                if (event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
+                event.preventDefault();
+                onOpen(project.slug);
+              }}
+            >
+              {project.title}
+            </a>
+          </h3>
           {project.year && <span className={styles.year}>{project.year}</span>}
         </div>
 
@@ -119,9 +142,10 @@ function ProjectCard({ project }: { project: Project }) {
 /**
  * A group has no repository and therefore no manifest: its cover, languages and
  * last-touched date are all read off its members, and clicking it opens them in
- * a full-width row beneath the card rather than navigating anywhere.
+ * a full-width row beneath the card rather than navigating anywhere. Its
+ * members are ordinary cards once open, so each one opens its own page.
  */
-function GroupCard({ group }: { group: ProjectGroup }) {
+function GroupCard({ group, onOpen }: { group: ProjectGroup; onOpen: OpenProject }) {
   const [open, setOpen] = useState(false);
   const panelId = `group-${group.slug}`;
 
@@ -202,7 +226,7 @@ function GroupCard({ group }: { group: ProjectGroup }) {
         // card's row instead of squeezing into one column.
         <div id={panelId} className={styles.groupPanel}>
           {group.projects.map((project) => (
-            <ProjectCard key={project.slug} project={project} />
+            <ProjectCard key={project.slug} project={project} onOpen={onOpen} />
           ))}
         </div>
       )}
@@ -210,19 +234,37 @@ function GroupCard({ group }: { group: ProjectGroup }) {
   );
 }
 
+/** The published list, exactly as the API returns it. */
+export type ProjectList = { entries: ProjectEntry[] };
+
+export type ProjectsResource = Resource<ProjectList>;
+
+/**
+ * The list of published projects. Exported because the route owns it: a link
+ * to one project's page has to resolve that project whether or not this
+ * section has ever been on screen, and two `useResource` calls would be two
+ * fetches of the same list.
+ */
+export function useProjects(): ProjectsResource {
+  return useResource<ProjectList>("projects", () =>
+    unwrap(api.github.projects.$get(), "Could not load the projects"),
+  );
+}
+
+type ProjectsProps = {
+  projects: ProjectsResource;
+  onOpen: OpenProject;
+};
+
 /**
  * The curated half of the site: repositories named in the server's PROJECT_REPOS
  * whitelist, on the same measure as the overview so the two sections read as one
  * column. Each card is a cover plus the metadata from the repo's `.portfolio`
- * manifest; the full media set belongs to the per-project page. Distinct from the
- * overview's carousel, which lists every public repo automatically and links
- * straight out to GitHub.
+ * manifest, and opens the project's own page — the full media set and the
+ * write-up live there. Distinct from the overview's carousel, which lists every
+ * public repo automatically and links straight out to GitHub.
  */
-export function Projects() {
-  const projects = useResource("projects", () =>
-    unwrap(api.github.projects.$get(), "Could not load the projects"),
-  );
-
+export function Projects({ projects, onOpen }: ProjectsProps) {
   return (
     <div className={styles.layout}>
       <SectionTitle id="projects" />
@@ -245,9 +287,9 @@ export function Projects() {
         <div className={styles.cards}>
           {projects.data.entries.map((entry) =>
             entry.kind === "group" ? (
-              <GroupCard key={`group-${entry.group.slug}`} group={entry.group} />
+              <GroupCard key={`group-${entry.group.slug}`} group={entry.group} onOpen={onOpen} />
             ) : (
-              <ProjectCard key={entry.project.slug} project={entry.project} />
+              <ProjectCard key={entry.project.slug} project={entry.project} onOpen={onOpen} />
             ),
           )}
         </div>

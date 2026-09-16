@@ -1,9 +1,10 @@
 /*
- * This section is taller than one screen (see `Section.tall`): the profile grid
- * fills the first viewport and the repo belt sits directly below it, so the
- * layout no longer has to shrink itself to fit.
+ * This page runs past one screen and scrolls inside itself (see
+ * Section.module.css): the profile grid fills the first viewport and the repo
+ * belt sits directly below it, so the layout no longer has to shrink itself to
+ * fit.
  *
- * One measure for the whole section — profile grid, belt and carousel alike —
+ * One measure for the whole page — profile grid, belt and carousel alike —
  * matching the projects grid below it.
  */
 .layout {

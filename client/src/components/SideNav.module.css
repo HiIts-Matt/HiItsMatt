@@ -14,6 +14,22 @@
   backdrop-filter: blur(16px);
 }
 
+/*
+ * Off to the left with the page stack it belongs to, on the same clock as the
+ * deck it names (see Landing.module.css). `translate` carries the vertical
+ * centring too, so the hidden state has to restate it.
+ */
+.nav {
+  transition:
+    translate var(--page-slide) var(--page-ease-slide),
+    opacity var(--page-slide) var(--page-ease-slide);
+}
+
+.nav[data-hidden] {
+  translate: calc(-100% - clamp(1rem, 2.5vw, 2.25rem)) -50%;
+  opacity: 0;
+}
+
 .item {
   position: relative;
   display: grid;

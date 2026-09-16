@@ -1,7 +1,7 @@
 /*
- * A grid of cards on the overview's measure, not a full-bleed stack: this
- * section is `tall` (see Section.module.css), so the grid grows a row at a time
- * instead of compressing the published projects into one screen.
+ * A grid of cards on the overview's measure, not a full-bleed stack: this page
+ * scrolls inside itself (see Section.module.css), so the grid grows a row at a
+ * time instead of compressing the published projects into one screen.
  */
 .layout {
   display: grid;
@@ -20,6 +20,8 @@
 }
 
 .card {
+  /* Containing block for the title link's stretched hit area. */
+  position: relative;
   display: grid;
   /* Cover, then body: the body stretches so the link rows align across a row
      of cards no matter how long the summaries are. */
@@ -29,25 +31,56 @@
   border: 1px solid var(--c-border);
   border-radius: var(--radius);
   background: var(--c-surface);
-}
-
-/*
- * The group card is a button, so it opts back into the card's own alignment and
- * announces itself as pressable; its panel spans the grid to land on the row
- * below rather than inside one column.
- */
-.groupCard {
-  text-align: start;
   cursor: pointer;
   transition:
     border-color 200ms ease,
     background 200ms ease;
 }
 
-.groupCard:hover,
+.card:hover,
 .groupCardOpen {
   border-color: var(--c-border-strong);
   background: var(--c-surface-hover);
+}
+
+/*
+ * The group card is a button, so it opts back into the card's own alignment
+ * and announces itself as pressable; its panel spans the grid to land on the
+ * row below rather than inside one column.
+ */
+.groupCard {
+  text-align: start;
+}
+
+/*
+ * The title is the link and the card is the target: an anchor wrapped around a
+ * card that already contains links would be invalid, and one around the cover
+ * alone would announce itself as an image. The pseudo-element takes the clicks
+ * for the whole card; `.links` sits above it so "Source" still goes to GitHub.
+ */
+.open {
+  color: inherit;
+  text-decoration: none;
+}
+
+.open::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: var(--radius);
+}
+
+/*
+ * Ring the card, not the two words of the title: the hit area is the card, so
+ * that is what the focus ring has to describe.
+ */
+.card:has(.open:focus-visible) {
+  outline: 2px solid var(--c-pink);
+  outline-offset: 2px;
+}
+
+.card:has(.open:focus-visible) .open {
+  outline: none;
 }
 
 .groupPanel {
@@ -176,6 +209,9 @@
 }
 
 .links {
+  /* Above the title link's stretched hit area, which covers the whole card. */
+  position: relative;
+  z-index: 1;
   display: flex;
   flex-wrap: wrap;
   gap: 0.5rem;
@@ -183,6 +219,8 @@
      link row lines up. */
   margin-block-start: auto;
   padding-block-start: 0.2rem;
+  /* The card is clickable, but the gap between its links is not part of it. */
+  width: fit-content;
 }
 
 .link,

@@ -3,6 +3,7 @@ import { cors } from "hono/cors";
 import { logger } from "hono/logger";
 import { env } from "./env.js";
 import { GitHubError } from "./github/rest.js";
+import { release } from "./release.js";
 import { githubRoutes } from "./routes/github.js";
 
 const app = new Hono().basePath("/api");
@@ -31,7 +32,9 @@ app.onError((error, c) => {
 // One chained expression so AppType carries every route; splitting these into
 // separate statements would erase the RPC types the client imports.
 const routes = app
-  .get("/health", (c) => c.json({ ok: true as const, uptimeSeconds: Math.round(process.uptime()) }))
+  .get("/health", (c) =>
+    c.json({ ok: true as const, release, uptimeSeconds: Math.round(process.uptime()) }),
+  )
   .route("/github", githubRoutes);
 
 export { app };

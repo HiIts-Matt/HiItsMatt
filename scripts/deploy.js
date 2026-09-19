@@ -15,6 +15,13 @@
  *   node scripts/deploy.js --skip-build reuse the existing build output
  *   node scripts/deploy.js --prune      also delete bucket objects that the
  *                                       current build no longer produces
+ *   node scripts/deploy.js --no-tag     deploy without recording a release
+ *   node scripts/deploy.js --allow-dirty ship uncommitted work (implies --no-tag)
+ *
+ * Every full deploy is recorded: an immutable `release-<date>-<n>` tag on the
+ * deployed commit, a `release` branch moved to it, and the same identifier
+ * compiled into the Lambda (GET /api/health) and written to /release.json.
+ * Rolling back is `git checkout <tag>` followed by another deploy.
  */
 
 import { execFileSync } from "node:child_process";
@@ -33,11 +40,19 @@ if (existsSync(configPath)) {
 const args = new Set(process.argv.slice(2));
 const skipBuild = args.has("--skip-build");
 const prune = args.has("--prune");
+// Deploying uncommitted work makes "which release is live" unanswerable, so it
+// is refused by default. The escape hatch exists for emergencies and disables
+// tagging, because there is no commit that describes what went out.
+const allowDirty = args.has("--allow-dirty");
+const skipTag = args.has("--no-tag") || allowDirty;
 // Neither flag means both halves; naming one narrows the deploy to it.
 const onlyWeb = args.has("--web");
 const onlyApi = args.has("--api");
 const doWeb = onlyWeb || !onlyApi;
 const doApi = onlyApi || !onlyWeb;
+// A partial deploy leaves the two halves on different commits, so the release
+// it produced is not one state of the repository and is not worth naming.
+const doTag = !skipTag && doWeb && doApi;
 
 const config = {
   region: process.env.AWS_REGION,
@@ -120,7 +135,68 @@ function aws(commandArgs, options = {}) {
   });
 }
 
-function preflight() {
+/** git is a real executable everywhere, so no shell and no quoting concerns. */
+function git(commandArgs) {
+  return execFileSync("git", commandArgs, {
+    cwd: root,
+    stdio: ["ignore", "pipe", "pipe"],
+    encoding: "utf8",
+  }).trim();
+}
+
+/**
+ * Dated and sequenced rather than semantic: these mark "what was live on this
+ * day", not an API contract, and inventing version numbers for a portfolio is
+ * ceremony. The suffix comes from the highest existing number for today, so a
+ * deleted tag does not cause a collision.
+ */
+function nextReleaseTag() {
+  const today = new Date().toISOString().slice(0, 10);
+  const prefix = `release-${today}-`;
+
+  const highest = git(["tag", "--list", `${prefix}*`])
+    .split("\n")
+    .filter(Boolean)
+    .reduce((max, tag) => Math.max(max, Number.parseInt(tag.slice(prefix.length), 10) || 0), 0);
+
+  return `${prefix}${highest + 1}`;
+}
+
+/**
+ * Commit the deploy is built from, plus the tag it will be labelled with.
+ * Resolved before anything is built so the identifier can be compiled into
+ * both artifacts; the tag itself is only created once the deploy succeeds.
+ */
+function resolveRelease() {
+  try {
+    git(["rev-parse", "--is-inside-work-tree"]);
+  } catch {
+    fail("Not a git repository. Deploys are labelled from git history.");
+  }
+
+  const dirty = git(["status", "--porcelain"]);
+
+  if (dirty && !allowDirty) {
+    fail(
+      "Working tree is not clean, so the deployed code would match no commit:\n\n" +
+        `${dirty}\n\n` +
+        "Commit or stash first. To ship anyway, pass --allow-dirty; that also\n" +
+        "skips tagging, because there would be nothing honest to tag.",
+    );
+  }
+
+  const commit = git(["rev-parse", "HEAD"]);
+
+  return {
+    commit,
+    shortCommit: commit.slice(0, 7),
+    branch: git(["rev-parse", "--abbrev-ref", "HEAD"]),
+    dirty: Boolean(dirty),
+    tag: doTag ? nextReleaseTag() : null,
+  };
+}
+
+function preflight(source) {
   heading("Preflight");
 
   const missing = Object.entries(config)
@@ -151,9 +227,11 @@ function preflight() {
   console.log(`    account  ${identity.Account}`);
   console.log(`    identity ${identity.Arn}`);
   console.log(`    region   ${config.region}`);
+  console.log(`    commit   ${source.shortCommit} on ${source.branch}${source.dirty ? " (DIRTY)" : ""}`);
+  console.log(`    release  ${source.tag ?? "untagged"}`);
 }
 
-function build() {
+function build(source) {
   if (skipBuild) return;
 
   if (doWeb) {
@@ -163,6 +241,9 @@ function build() {
 
   if (doApi) {
     heading("Bundle API");
+    // Compiled into the bundle by server/scripts/bundle.js, so GET /api/health
+    // reports which build is answering instead of leaving it to be inferred.
+    process.env.RELEASE = source.tag ?? source.shortCommit;
     npm(["-w", "server", "run", "bundle"]);
   }
 }
@@ -180,7 +261,7 @@ function listFiles(dir, prefix = "") {
   return files;
 }
 
-function deployWeb() {
+function deployWeb(source) {
   heading("Upload site to S3");
 
   const dist = resolve(root, "client", "dist");
@@ -189,9 +270,28 @@ function deployWeb() {
     fail(`No build at ${dist}. Drop --skip-build, or run \`npm run build\` first.`);
   }
 
+  // Served at /release.json so "what is live right now" is answerable without
+  // AWS access. Written before the upload so it ships with the build it
+  // describes. Not cached: see the index.html pass below.
+  writeFileSync(
+    join(dist, "release.json"),
+    `${JSON.stringify(
+      {
+        release: source.tag ?? source.shortCommit,
+        commit: source.commit,
+        branch: source.branch,
+        dirty: source.dirty,
+        deployedAt: new Date().toISOString(),
+      },
+      null,
+      2,
+    )}\n`,
+  );
+
   const target = `s3://${config.bucket}`;
   const files = listFiles(dist);
-  const extensions = new Set(files.filter((f) => f !== "index.html").map((f) => extname(f)));
+  const mutable = new Set(["index.html", "release.json"]);
+  const extensions = new Set(files.filter((f) => !mutable.has(f)).map((f) => extname(f)));
 
   // One pass per extension so each group carries a content type the CLI did not
   // have to guess. sync compares size and mtime, so the catch-all pass below
@@ -211,6 +311,8 @@ function deployWeb() {
       `*${extension}`,
       "--exclude",
       "index.html",
+      "--exclude",
+      "release.json",
       "--content-type",
       contentType,
       "--cache-control",
@@ -220,8 +322,8 @@ function deployWeb() {
   }
 
   // Anything with an extension this script does not know, plus --prune's
-  // deletions. index.html is excluded from both: it is uploaded last, after the
-  // assets it references are all in place.
+  // deletions. The two mutable files are excluded from both: they are uploaded
+  // last, after every asset they reference is already in place.
   aws([
     "s3",
     "sync",
@@ -229,6 +331,8 @@ function deployWeb() {
     target,
     "--exclude",
     "index.html",
+    "--exclude",
+    "release.json",
     "--cache-control",
     IMMUTABLE,
     "--only-show-errors",
@@ -236,6 +340,18 @@ function deployWeb() {
     // previous build's hashed assets breaks any tab that is open mid-deploy and
     // has not fetched that chunk yet. Stale assets are cheap; broken tabs are not.
     ...(prune ? ["--delete"] : []),
+  ]);
+
+  aws([
+    "s3",
+    "cp",
+    join(dist, "release.json"),
+    `${target}/release.json`,
+    "--content-type",
+    "application/json; charset=utf-8",
+    "--cache-control",
+    SHELL,
+    "--only-show-errors",
   ]);
 
   aws([
@@ -314,6 +430,7 @@ function invalidate() {
         "--paths",
         "/",
         "/index.html",
+        "/release.json",
       ],
       { capture: true },
     ),
@@ -322,12 +439,65 @@ function invalidate() {
   console.log(`    ${result.Invalidation.Id} (${result.Invalidation.Status})`);
 }
 
+/**
+ * Records what just went live: an immutable tag naming this exact commit, and
+ * a `release` branch moved to it so `git diff release main` is the list of
+ * unreleased work.
+ *
+ * Runs last on purpose — a tag created before a failed upload would name a
+ * release that never existed. Rolling back is then `git checkout <tag>` and
+ * deploying again.
+ */
+function tagRelease(source) {
+  heading("Tag release");
+
+  git(["tag", "-a", source.tag, "-m", `Deployed ${source.shortCommit} from ${source.branch}`]);
+
+  // `git branch -f` refuses to move the branch that is currently checked out,
+  // and when it is checked out it is already at HEAD anyway.
+  if (source.branch !== "release") {
+    git(["branch", "-f", "release", source.commit]);
+  }
+
+  console.log(`    ${source.tag} -> ${source.shortCommit}`);
+  console.log("    release -> same commit");
+
+  const refs = [`refs/tags/${source.tag}`, "release"];
+
+  try {
+    git(["push", "origin", ...refs]);
+    console.log("    pushed to origin");
+  } catch {
+    // A rollback deploy moves `release` backwards, which a plain push rejects
+    // as non-fast-forward. Retry with a lease so a branch someone else moved
+    // still stops us, while our own rewind goes through.
+    //
+    // Ordered this way because --force-with-lease needs a remote-tracking ref
+    // to compare against, and on the very first push of `release` there is
+    // none — it would fail with "stale info" before the plain push ever ran.
+    try {
+      git(["push", "--force-with-lease", "origin", ...refs]);
+      console.log("    pushed to origin (rewound release)");
+    } catch (error) {
+      // The deploy itself succeeded and the site is live; failing to push is a
+      // bookkeeping problem, so report it precisely rather than exiting non-zero.
+      const detail = error.stderr?.toString().trim() || error.message;
+      console.warn(`\n    Could not push to origin — the release is live but unpushed.`);
+      console.warn(`    ${detail}`);
+      console.warn(`    Retry with: git push origin ${source.tag} release`);
+    }
+  }
+}
+
+const source = resolveRelease();
+
 try {
-  preflight();
-  build();
-  if (doWeb) deployWeb();
+  preflight(source);
+  build(source);
+  if (doWeb) deployWeb(source);
   if (doApi) await deployApi();
   if (doWeb) invalidate();
+  if (doTag) tagRelease(source);
 } catch (error) {
   // execFileSync throws with the whole command line in the message, which
   // buries the one line that matters. Non-captured calls already printed the

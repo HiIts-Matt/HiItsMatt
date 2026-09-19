@@ -39,8 +39,8 @@ portfolio's traffic disappears inside CloudFront's and Lambda's free tiers.
   `server/.env.example` for why it matters more in production than locally.
 
 Pick one region for the bucket and the function and use it throughout; this
-guide writes `eu-west-2`. CloudFront is global, and the certificate is the one
-exception — see step 2.
+guide writes `ap-southeast-2` (Sydney). CloudFront is global, and the
+certificate is the one exception — see step 2.
 
 ---
 
@@ -188,7 +188,7 @@ distribution ID** (`E…`) and the ARN.
 
 **Origins → Create origin.**
 
-- Origin domain: the Function URL's **hostname only** — `abc123.lambda-url.eu-west-2.on.aws`,
+- Origin domain: the Function URL's **hostname only** — `abc123.lambda-url.ap-southeast-2.on.aws`,
   with no `https://` and no trailing slash.
 - Origin type / protocol: HTTPS only.
 - Origin access: **Origin access control settings** → *Create new OAC* →
@@ -227,7 +227,7 @@ aws lambda add-permission \
   --principal cloudfront.amazonaws.com \
   --source-arn arn:aws:cloudfront::<ACCOUNT_ID>:distribution/<DISTRIBUTION_ID> \
   --function-url-auth-type AWS_IAM \
-  --region eu-west-2
+  --region ap-southeast-2
 ```
 
 ### Optional: cache project media

@@ -1,5 +1,5 @@
 {
-  "title": "HiItsMatt.com",
+  "title": "HiItsMatt.dev",
   "tagline": "This site: a portfolio built as a stack of full-screen pages",
   "summary": "My portfolio. Three full-screen pages that hand over to each other rather than scroll, a shader hero whose gradient ends on a chevron punched out of the ink above it, and a case study page per project carrying its own media, write-up and metadata. A Hono API behind it holds the credentials and the caches, reading the live half of the site from GitHub and the curated half from a `.portfolio` folder committed inside each project's own repository, so a private repo can be shown without handing a token to the browser.",
   "year": "2026",

@@ -4,9 +4,9 @@ GitHub a moment ago and rendered on the way through.
 
 ## No CMS, on purpose
 
-A portfolio has two halves that rot at different speeds. The automatic half —
-who I am, what I have pushed lately, which languages the repos actually consist
-of — is already maintained on GitHub, and copying it anywhere else just means
+A portfolio has two halves that rot at different speeds. The automatic half (who
+I am, what I have pushed lately, which languages the repos actually consist
+of) is already maintained on GitHub, and copying it anywhere else just means
 maintaining it twice. The curated half is real writing, and writing about a
 project belongs next to that project, not in a content folder on a site the
 project has never heard of.
@@ -23,7 +23,7 @@ One folder, and every part of it optional:
 ```
 .portfolio/
   project.json      title, tagline, summary, year, status, tags, links, cover
-  article.md        the body of the project's page — this file
+  article.md        the body of the project's page, this file
   media/            images and clips, shown in filename order
     01-hero.webp
     02-tour.webm
@@ -44,7 +44,7 @@ PROJECT_REPOS=HiItsMatt,MattBoard,[Raspberry Pi: pi-stack, pi-homelab, pc-remote
 Order is display order, and the bracket form collapses several repos into one
 card that opens into its members. A typo in that list is the failure mode worth
 designing for, because a misspelled repo looks exactly like a private repo the
-token cannot see — both are simply absent. So the parser refuses to start the
+token cannot see: both are simply absent. So the parser refuses to start the
 server instead, and names the entry it could not read.
 
 ## Two processes, one type
@@ -52,7 +52,7 @@ server instead, and names the entry it could not read.
 A Hono API on Node holds every credential and every cache. The browser gets a
 Vite and React bundle that knows only its own origin, plus a typed RPC client
 built from the server's route definitions. The client imports the server's
-`AppType` as a type only — no server code reaches the bundle — which means
+`AppType` as a type only, so no server code reaches the bundle, which means
 renaming a route or changing a response shape breaks the front end at build
 time rather than at runtime.
 
@@ -66,8 +66,8 @@ Every asset is therefore streamed back through the API, and the interesting
 part is the authorization check, which is a set-membership test and nothing
 else. The server walks `.portfolio/media` itself, keeps only the paths whose
 extension is in a fixed allowlist, and publishes those. When a request arrives
-for `media/01-hero.webp`, the answer is not "is this path safe?" — parsing
-paths for safety is how directory traversal keeps happening — it is "is this
+for `media/01-hero.webp`, the answer is not "is this path safe?" (parsing
+paths for safety is how directory traversal keeps happening), it is "is this
 one of the paths I published?" Nothing else in the repository has a name that
 can be spelled.
 
@@ -81,7 +81,7 @@ the grounds that it belongs on a CDN.
 ## Two clocks
 
 Unauthenticated GitHub allows 60 requests an hour per IP, and a cold page load
-costs one request per repository twice over — once for the README excerpt, once
+costs one request per repository twice over: once for the README excerpt, once
 for the language breakdown. Caching is not an optimisation here, it is the
 difference between the site working and the site being rate limited.
 
@@ -91,7 +91,7 @@ difference between the site working and the site being rate limited.
 | READMEs, languages, manifests, articles    | 15 min  | Content changes on the scale of commits, not requests |
 
 Concurrent misses on the same key share one upstream request, so three sections
-mounting at once cost one fetch, not three. Rejections are never cached — a
+mounting at once cost one fetch, not three. Rejections are never cached: a
 failure should not be served for fifteen minutes. And the fan-out is bounded at
 24 repositories per enrichment pass, because a paging bug should cost a slow
 page, not the whole hourly budget.
@@ -103,7 +103,7 @@ page, not the whole hourly budget.
 The hero's edge is not an image, and it is not a second gradient. The shader
 canvas is sized to one screen *plus a band* below it, so there is real,
 still-animating gradient underneath the fold. An ink-coloured rectangle covers
-that band, and the chevron is a hole punched in the cover — so what shows
+that band, and the chevron is a hole punched in the cover, so what shows
 through is the same canvas on the same frame, not a copy of it.
 
 The hole's outline is a full-width V with every point displaced along the
@@ -114,7 +114,7 @@ the curve already goes and changes nothing you can see. Two details took the
 longest. The apex is softened, because a true `abs()` has infinite curvature at
 its point and the normals either side of it disagree hard enough to tear the
 edge across a single sample. And the noise tapers to zero at both corners,
-where the hole meets the band's own edges — an excursion there either pushes
+where the hole meets the band's own edges: an excursion there either pushes
 the boundary out through the top of the ink or leaves a notch hanging off the
 side.
 
@@ -129,7 +129,7 @@ them is a handover: one page slides off, then the next expands out from under
 it. That is two animations in sequence, and a scroll offset can only ever
 express one number, so it could not have been done with scroll snapping.
 
-What that buys is that a page's own overflow stays completely native — reading
+What that buys is that a page's own overflow stays completely native: reading
 down this article is a plain scroll with plain momentum. The pager only takes
 the gesture once the page has nothing left to give in that direction, and the
 rule for when that counts is the same for all three inputs: the gesture must
@@ -137,7 +137,7 @@ have *started* after the page ran out.
 
 That last clause is the whole thing. Trackpad momentum after a flick arrives as
 an unbroken stream of wheel events, so a flick that happens to coast into the
-bottom of a page must not page — the stream has no gap in it. A held arrow key
+bottom of a page must not page: the stream has no gap in it. A held arrow key
 is one press repeated. A swipe that began while the page could still scroll is
 one swipe. Without that rule every long scroll ends one page further down than
 you asked for. The threshold is 140 ms of quiet; stopping and pushing again is
@@ -145,7 +145,7 @@ a second gesture and does page.
 
 The durations live in one TypeScript constant and are published to CSS as
 custom properties, because the animation and the input lock that spans it must
-not be able to disagree — a lock outlasting its own animation is a page that
+not be able to disagree: a lock outlasting its own animation is a page that
 ignores you for no visible reason. Going back up, the second beat starts 160 ms
 early: downward the big movement comes first and reads as continuous, upward it
 comes second and the gap in front of it is dead air.
@@ -161,7 +161,7 @@ npm run dev
 Windows-shaped reason: `tsx watch` and Vite both spawn children that survive a
 plain Ctrl-C, so shutdown has to kill the process tree or the next run finds
 both ports occupied. It preflights the failures that otherwise surface as
-confusing runtime errors instead of startup ones — no `GITHUB_USERNAME`,
+confusing runtime errors instead of startup ones: no `GITHUB_USERNAME`,
 workspaces not installed, a stale server already on 5173 or 3000.
 
 `server/.env` needs a GitHub username. A token is optional: without one the
@@ -174,6 +174,6 @@ projects appear too.
 
 The loader waits for the shader to paint 20 stable frames before lifting,
 which is honest but means the first visit is gated on WebGL. There is no
-deployment yet — it runs locally, and the token in my `.env` is the GitHub
+deployment yet: it runs locally, and the token in my `.env` is the GitHub
 CLI's own session token, which rotates. The next real piece of work is putting
 it somewhere with a hostname.

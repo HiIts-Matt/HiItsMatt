@@ -1,7 +1,7 @@
 {
   "title": "HiItsMatt.com",
   "tagline": "A portfolio that reads itself out of GitHub",
-  "summary": "This site. A Vite + React front end over a Hono API that pulls the profile, language split, contribution graph and every public repository straight from GitHub's REST and GraphQL APIs, caches them in process, and streams each project's own screenshots out of its `.portfolio` folder — so a private repo can be shown without handing a token to the browser.",
+  "summary": "This site. A Vite + React front end over a Hono API that pulls the profile, language split, contribution graph and every public repository straight from GitHub's REST and GraphQL APIs, caches them in process, and streams each project's own screenshots out of its `.portfolio` folder, so a private repo can be shown without handing a token to the browser.",
   "year": "2026",
   "status": "In progress",
   "tags": ["react", "typescript", "vite", "hono", "three.js", "github-api"],
@@ -15,7 +15,7 @@
     {
       "src": "media/02-overview.webp",
       "alt": "Overview section: profile card, language split, contribution graph and the repository rail",
-      "caption": "Everything here is live GitHub data — profile, language volume, a year of contributions."
+      "caption": "Everything here is live GitHub data: profile, language volume, a year of contributions."
     },
     {
       "src": "media/03-personal-work.webp",

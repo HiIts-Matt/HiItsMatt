@@ -290,12 +290,19 @@ function deployWeb(source) {
 
   const target = `s3://${config.bucket}`;
   const files = listFiles(dist);
-  const mutable = new Set(["index.html", "release.json"]);
-  const extensions = new Set(files.filter((f) => !mutable.has(f)).map((f) => extname(f)));
 
-  // One pass per extension so each group carries a content type the CLI did not
-  // have to guess. sync compares size and mtime, so the catch-all pass below
-  // will not re-upload — and therefore will not overwrite — what these set.
+  // Vite content-hashes everything it emits into assets/ and copies public/
+  // through to the root verbatim. Only the first group may be cached forever:
+  // a new build of a hashed asset writes a new key, so the old one is never
+  // consulted again. Root files keep their names across builds — caching
+  // og.png for a year would make the link preview image unchangeable.
+  const hashed = files.filter((file) => file.startsWith("assets/"));
+  const rootFiles = files.filter((file) => !file.startsWith("assets/"));
+  const extensions = new Set(hashed.map((file) => extname(file)));
+
+  // One pass per extension so each group carries a content type the CLI did
+  // not have to guess. sync compares size and mtime, so the catch-all pass
+  // below will not re-upload — and therefore will not overwrite — these.
   for (const extension of [...extensions].sort()) {
     const contentType = CONTENT_TYPES.get(extension);
     if (!contentType) continue;
@@ -308,11 +315,7 @@ function deployWeb(source) {
       "--exclude",
       "*",
       "--include",
-      `*${extension}`,
-      "--exclude",
-      "index.html",
-      "--exclude",
-      "release.json",
+      `assets/*${extension}`,
       "--content-type",
       contentType,
       "--cache-control",
@@ -321,18 +324,17 @@ function deployWeb(source) {
     ]);
   }
 
-  // Anything with an extension this script does not know, plus --prune's
-  // deletions. The two mutable files are excluded from both: they are uploaded
-  // last, after every asset they reference is already in place.
+  // Any hashed asset with an extension this script does not know, plus
+  // --prune's deletions.
   aws([
     "s3",
     "sync",
     dist,
     target,
     "--exclude",
-    "index.html",
-    "--exclude",
-    "release.json",
+    "*",
+    "--include",
+    "assets/*",
     "--cache-control",
     IMMUTABLE,
     "--only-show-errors",
@@ -342,31 +344,30 @@ function deployWeb(source) {
     ...(prune ? ["--delete"] : []),
   ]);
 
-  aws([
-    "s3",
-    "cp",
-    join(dist, "release.json"),
-    `${target}/release.json`,
-    "--content-type",
-    "application/json; charset=utf-8",
-    "--cache-control",
-    SHELL,
-    "--only-show-errors",
-  ]);
+  // Root files last, so every hashed asset they reference is already in place.
+  // One `cp` each rather than a sync: there are a handful, each needs its own
+  // content type, and `no-cache` means revalidate — CloudFront still stores
+  // them, it just asks S3 whether its copy is current, which is what makes a
+  // replaced og.png visible after the invalidation below.
+  for (const file of rootFiles.sort()) {
+    aws([
+      "s3",
+      "cp",
+      join(dist, file),
+      `${target}/${file}`,
+      "--content-type",
+      CONTENT_TYPES.get(extname(file)) ?? "application/octet-stream",
+      "--cache-control",
+      SHELL,
+      "--only-show-errors",
+    ]);
+  }
 
-  aws([
-    "s3",
-    "cp",
-    join(dist, "index.html"),
-    `${target}/index.html`,
-    "--content-type",
-    "text/html; charset=utf-8",
-    "--cache-control",
-    SHELL,
-    "--only-show-errors",
-  ]);
+  console.log(`    ${hashed.length} hashed + ${rootFiles.length} root -> ${target}`);
 
-  console.log(`    ${files.length} files -> ${target}`);
+  // The caller invalidates exactly these: the keys that can change content
+  // while keeping their name.
+  return rootFiles;
 }
 
 async function deployApi() {
@@ -414,29 +415,24 @@ async function deployApi() {
   console.log(`    sha256 ${updated.CodeSha256}`);
 }
 
-function invalidate() {
+function invalidate(rootFiles) {
   heading("Invalidate CloudFront");
 
-  // Only the shell: every other object is content-hashed, so a new build writes
-  // new keys that were never cached under the old ones. Invalidating /* instead
-  // would evict the media cache too and bill for it.
+  // Exactly the keys whose content can change while the name stays the same:
+  // "/" plus everything Vite copied from public/ to the root. Hashed assets
+  // never need it — a new build writes new keys nobody has cached. "/*" would
+  // also evict the cached project media and bill for the privilege.
+  const paths = ["/", ...rootFiles.map((file) => `/${file}`)];
+
   const result = JSON.parse(
     aws(
-      [
-        "cloudfront",
-        "create-invalidation",
-        "--distribution-id",
-        config.distributionId,
-        "--paths",
-        "/",
-        "/index.html",
-        "/release.json",
-      ],
+      ["cloudfront", "create-invalidation", "--distribution-id", config.distributionId, "--paths", ...paths],
       { capture: true },
     ),
   );
 
   console.log(`    ${result.Invalidation.Id} (${result.Invalidation.Status})`);
+  console.log(`    ${paths.length} paths`);
 }
 
 /**
@@ -494,9 +490,9 @@ const source = resolveRelease();
 try {
   preflight(source);
   build(source);
-  if (doWeb) deployWeb(source);
+  const rootFiles = doWeb ? deployWeb(source) : [];
   if (doApi) await deployApi();
-  if (doWeb) invalidate();
+  if (doWeb) invalidate(rootFiles);
   if (doTag) tagRelease(source);
 } catch (error) {
   // execFileSync throws with the whole command line in the message, which

@@ -5,8 +5,36 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="color-scheme" content="dark" />
     <meta name="theme-color" content="#05010f" />
-    <meta name="description" content="Matt — developer portfolio, projects and open source work." />
     <title>Hi, It's Matt</title>
+    <meta name="description" content="Matt — developer portfolio, projects and open source work." />
+    <link rel="canonical" href="https://hiitsmatt.dev/" />
+
+    <!-- The GitHub avatar, saved locally rather than hotlinked: a remote
+         favicon is a third-party request on every page load and breaks if the
+         avatar URL changes. PNG rather than .ico — every browser since IE11
+         accepts it, and one 460px source scales down cleanly. -->
+    <link rel="icon" type="image/png" href="/icon.png" />
+    <link rel="apple-touch-icon" href="/icon.png" />
+
+    <!-- Link preview cards. og:image must be an ABSOLUTE url: scrapers fetch
+         it without a document base, so "/og.png" resolves to nothing. Width
+         and height let them reserve layout before the image downloads, which
+         is what stops the card rendering as a small square first. -->
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="Hi, It's Matt" />
+    <meta property="og:url" content="https://hiitsmatt.dev/" />
+    <meta property="og:title" content="Hi, It's Matt" />
+    <meta property="og:description" content="Developer portfolio, projects and open source work." />
+    <meta property="og:image" content="https://hiitsmatt.dev/og.png" />
+    <meta property="og:image:type" content="image/png" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:image:alt" content="The Hi, It's Matt landing page" />
+
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="Hi, It's Matt" />
+    <meta name="twitter:description" content="Developer portfolio, projects and open source work." />
+    <meta name="twitter:image" content="https://hiitsmatt.dev/og.png" />
   </head>
   <body>
     <div id="root"></div>

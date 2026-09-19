@@ -8,7 +8,7 @@
   "cover": "media/01-hero.webp",
   "media": [
     {
-      "src": "media/01-hero.webp",
+      "src": "media/01-hero.png",
       "alt": "Landing hero: 'Hi, It's Matt' over an animated shader gradient",
       "caption": "The hero runs a three.js shader gradient, lazily imported so the headline paints first."
     },

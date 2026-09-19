@@ -146,6 +146,59 @@ built from the server's route definitions. The client imports the server's
 renaming a route or changing a response shape breaks the front end at build
 time rather than at runtime.
 
+## One hostname, two origins
+
+In development Vite proxies `/api` to the Hono process, which keeps the API
+same-origin and means the browser never preflights anything. Production had to
+preserve that or the two environments would disagree about a thing as basic as
+whether CORS exists.
+
+So there is one CloudFront distribution with two origins behind it. The
+default behaviour serves the built client from an S3 bucket that has no public
+path at all — block-public-access stays fully on, and CloudFront reaches it
+with an origin access control, which is a signed request rather than a
+permission. A second behaviour on `/api/*` points at the same Hono app running
+as a Lambda. The browser sees one hostname, the RPC client keeps its relative
+base URL, and `CORS_ORIGINS` is never consulted in production.
+
+The Lambda sits behind a function URL in response-streaming mode rather than
+the default buffered one. That is not a performance preference. The media
+route pipes GitHub's response body straight through, and a buffered Lambda
+response is capped at 6 MB after base64 inflation — about 4.4 MB of actual
+bytes, which a single screen recording clears easily. Streaming raises the
+ceiling to 200 MB and, more usefully, forwards the status and headers
+untouched, so the `206` and `Content-Range` that a video player's seek depends
+on survive the trip. API Gateway cannot stream at all, which is why the
+distribution talks to a function URL directly.
+
+Deep links needed one more piece. `/projects/<slug>` is a client route, so
+asking S3 for it fetches an object that does not exist. The fix is a small
+CloudFront function on viewer-request that rewrites any extension-less path to
+`/index.html`. Deliberately a function attached to one behaviour, and not the
+distribution's custom error responses, which are the obvious-looking answer:
+those apply to every behaviour, so the API's genuine 404s — an unknown repo, a
+slug that is not published — would come back as the HTML shell with status
+200, and the client would report a parse failure instead of the server's own
+message.
+
+Caching splits on whether a filename is a promise. Vite content-hashes
+everything under `assets/`, so those are immutable for a year and a new build
+simply writes keys nobody has cached. Everything copied to the root keeps its
+name across builds, so it is uploaded `no-cache` and invalidated by path.
+Invalidating `/*` instead would be one line shorter and would evict the cached
+project media along with it.
+
+The one thing that genuinely changed shape is the cache inside the server. It
+lives in a single execution environment, so every cold Lambda starts empty and
+refetches. Unauthenticated GitHub allows 60 requests an hour *per IP*, on
+addresses Lambda shares with other tenants, which makes the token mandatory in
+production in a way it never was locally.
+
+Each deploy is a tag. The commit is compiled into the bundle and written to
+`/release.json`, so `GET /api/health` and a static file both name the same
+release, and a deploy refuses to run at all against a dirty working tree —
+otherwise "which commit is live" has no answer.
+
 ## Motion, and turning it off
 
 With `prefers-reduced-motion` set, the shader stops animating, the intro's
@@ -168,14 +221,31 @@ both ports taken. It preflights the failures that otherwise surface as
 confusing runtime errors instead of startup ones: no `GITHUB_USERNAME`,
 workspaces not installed, a stale server already on 5173 or 3000.
 
-A GitHub token is optional. Without one the site runs on the anonymous rate
-limit and the contribution graph is missing, because GitHub only exposes the
-calendar through GraphQL and GraphQL rejects anonymous requests outright.
+A GitHub token is optional locally. Without one the site runs on the anonymous
+rate limit and the contribution graph is missing, because GitHub only exposes
+the calendar through GraphQL and GraphQL rejects anonymous requests outright.
+
+Which token took a second pass. Everything the server reads is public except
+the `.portfolio` directories of the three private projects, and the classic
+scope that unlocks those is `repo` — read *and write* across every private
+repository I can reach, sitting in a deployed environment variable so four
+directories can be listed. A fine-grained token does the same job with
+`Contents: Read-only` on exactly the repositories named in `PROJECT_REPOS`,
+which is the difference between a leak costing me those four directories and
+costing me everything.
 
 ## Still open
 
 The loader waits for the shader to paint 20 stable frames before lifting,
-which is honest but means a first visit is gated on WebGL compiling. There is
-no deployment yet: it runs locally, and the token in my `.env` is the GitHub
-CLI's own session token, which rotates. Putting it somewhere with a hostname is
-the next real piece of work.
+which is honest but means a first visit is gated on WebGL compiling. The
+gradient is also 1.1 MB of three.js — lazily imported, so it is off the
+critical path, but it is still by far the largest thing the site ships for one
+visual effect.
+
+On the infrastructure side, project media is served straight from the Lambda
+on every cache miss, and Lambda throttles a stream to 2 MB/s past the first
+6 MB. A dedicated cache behaviour in front of `/api/github/projects/*` would
+fix that, and has not been worth it while the largest asset is under a
+megabyte. The certificate is also pinned to TLS 1.3 only, which is a stricter
+choice than a portfolio warrants: it is the sort of setting that fails closed
+on an old corporate laptop belonging to exactly the person the site is for.

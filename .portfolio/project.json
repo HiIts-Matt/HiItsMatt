@@ -5,7 +5,7 @@
   "year": "2026",
   "status": "In progress",
   "tags": ["react", "typescript", "vite", "hono", "three.js", "github-api"],
-  "cover": "media/01-hero.webp",
+  "cover": "media/01-hero.png",
   "media": [
     {
       "src": "media/01-hero.png",

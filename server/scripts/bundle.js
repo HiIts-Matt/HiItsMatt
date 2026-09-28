@@ -20,6 +20,9 @@ await build({
   platform: "node",
   target: "node22",
   format: "esm",
+  // The Node.js 22 Lambda runtime ships AWS SDK v3; bundling a second copy
+  // would only add cold-start weight.
+  external: ["@aws-sdk/*"],
   // Textual substitution of the identifier declared in src/release.ts.
   define: { __RELEASE__: JSON.stringify(release) },
   logLevel: "info",

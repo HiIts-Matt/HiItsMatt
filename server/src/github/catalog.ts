@@ -1,5 +1,6 @@
 import { cached } from "../cache.js";
 import { env } from "../env.js";
+import { snapshotted } from "../snapshots.js";
 import { fetchContributions, type Contributions } from "./graphql.js";
 import { readmeExcerpt } from "./markdown.js";
 import {
@@ -22,11 +23,11 @@ const CONTENT_TTL_MS = 15 * 60 * 1000;
 const ENRICHED_REPO_LIMIT = 24;
 
 export function getProfile(): Promise<Profile> {
-  return cached("profile", METADATA_TTL_MS, () => fetchProfile(env.githubUsername));
+  return snapshotted("profile", METADATA_TTL_MS, () => fetchProfile(env.githubUsername));
 }
 
 function getBaseRepos(): Promise<RepoBase[]> {
-  return cached("repos:base", METADATA_TTL_MS, () => fetchOwnedPublicRepos(env.githubUsername));
+  return snapshotted("repos:base", METADATA_TTL_MS, () => fetchOwnedPublicRepos(env.githubUsername));
 }
 
 /**
@@ -35,7 +36,7 @@ function getBaseRepos(): Promise<RepoBase[]> {
  * the other's README fetch.
  */
 export function getReadmeMarkdown(owner: string, name: string): Promise<string | null> {
-  return cached(`readme:${owner}/${name}`, CONTENT_TTL_MS, () => fetchReadmeMarkdown(owner, name));
+  return snapshotted(`readme:${owner}/${name}`, CONTENT_TTL_MS, () => fetchReadmeMarkdown(owner, name));
 }
 
 export function getRepos(): Promise<Repo[]> {
@@ -70,7 +71,7 @@ export function getLanguages(): Promise<{ languages: LanguageStat[]; totalBytes:
 
     const results = await Promise.allSettled(
       sampled.map((repo) =>
-        cached(`languages:${repo.fullName}`, CONTENT_TTL_MS, () =>
+        snapshotted(`languages:${repo.fullName}`, CONTENT_TTL_MS, () =>
           fetchRepoLanguages(repo.owner, repo.name),
         ),
       ),
@@ -99,7 +100,7 @@ export function getLanguages(): Promise<{ languages: LanguageStat[]; totalBytes:
 }
 
 export function getContributions(): Promise<Contributions> {
-  return cached("contributions", METADATA_TTL_MS, () => fetchContributions(env.githubUsername));
+  return snapshotted("contributions", METADATA_TTL_MS, () => fetchContributions(env.githubUsername));
 }
 
 export async function getReadmeHtml(repoName: string): Promise<string | null> {
@@ -114,7 +115,7 @@ export async function getReadmeHtml(repoName: string): Promise<string | null> {
     throw new GitHubError(`"${repoName}" is not one of the published repositories.`, 404);
   }
 
-  return cached(`readme-html:${match.fullName}`, CONTENT_TTL_MS, async () => {
+  return snapshotted(`readme-html:${match.fullName}`, CONTENT_TTL_MS, async () => {
     const markdown = await getReadmeMarkdown(match.owner, match.name);
 
     if (markdown === null) {

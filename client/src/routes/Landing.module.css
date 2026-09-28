@@ -38,7 +38,7 @@
 }
 
 /*
- * The three-page stack, as one object.
+ * The page stack, as one object.
  *
  * A project's page is not a fourth page in the stack: the stack's own handover
  * is vertical and holds one page's scroll against the next, while this is

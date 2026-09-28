@@ -60,8 +60,8 @@
  * The intro's backdrop is outside the scroller and so keeps its full colour:
  * it is background, and it is never the page held underneath anyway.
  */
-.page[data-role="leaving"] .scroller,
-.page[data-role="entering"] .scroller {
+.page[data-role="leaving"] :is(.scroller, .layer),
+.page[data-role="entering"] :is(.scroller, .layer) {
   will-change: filter;
 }
 
@@ -81,7 +81,7 @@
   animation: expand var(--page-settle) var(--page-ease-settle) var(--page-slide) both;
 }
 
-.page[data-direction="down"][data-role="entering"] .scroller {
+.page[data-direction="down"][data-role="entering"] :is(.scroller, .layer) {
   animation: undim var(--page-settle) var(--page-ease-settle) var(--page-slide) both;
 }
 
@@ -102,7 +102,7 @@
   animation: shrink var(--page-settle) var(--page-ease-settle) both;
 }
 
-.page[data-direction="up"][data-role="leaving"] .scroller {
+.page[data-direction="up"][data-role="leaving"] :is(.scroller, .layer) {
   animation: dim var(--page-settle) var(--page-ease-settle) both;
 }
 
@@ -204,6 +204,23 @@
  */
 .scroller > * {
   flex: none;
+}
+
+/*
+ * Content pinned to the screen rather than scrolled: above the scroller, the
+ * size of the page, clipped to it. Pages render into it through `usePageLayer`
+ * (see Section.tsx). It lets nothing through by itself — whatever is portalled
+ * in opts back into pointer events — so the scroller underneath keeps working.
+ *
+ * It moves and dims with the page during a handover, because it is part of
+ * the page, not a fixed layer over the stage.
+ */
+.layer {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  overflow: clip;
+  pointer-events: none;
 }
 
 /*

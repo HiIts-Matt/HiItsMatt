@@ -1,4 +1,4 @@
-import type { CSSProperties, ReactNode } from "react";
+import { type CSSProperties, createContext, type ReactNode, useContext, useState } from "react";
 
 import type { PageDirection, PageRole } from "../hooks/usePager";
 import { cx } from "../lib/cx";
@@ -26,6 +26,21 @@ type SectionProps = {
   children: ReactNode;
 };
 
+const PageLayerContext = createContext<HTMLElement | null>(null);
+
+/**
+ * The page's pinned layer: an element above the scroller, the size of the page,
+ * that does not scroll. Portal into it for anything that belongs to the screen
+ * rather than to the document — it still moves and dims with the page during a
+ * handover, which `position: fixed` inside the scroller would not do reliably
+ * (the handover's filter turns the scroller into the containing block).
+ *
+ * Null until the page has mounted.
+ */
+export function usePageLayer(): HTMLElement | null {
+  return useContext(PageLayerContext);
+}
+
 /**
  * One page of the stack: an animated layer wrapping the page's own scroller.
  *
@@ -50,6 +65,7 @@ export function Section({
   // The page being handed to is live immediately — its links are the ones worth
   // clicking, and focus is already inside it while it grows.
   const active = role === "current" || role === "entering";
+  const [layer, setLayer] = useState<HTMLElement | null>(null);
 
   return (
     <div
@@ -62,14 +78,18 @@ export function Section({
     >
       {backdrop}
 
-      <section
-        id={id}
-        aria-label={label}
-        tabIndex={-1}
-        className={cx(styles.scroller, centered && styles.centered)}
-      >
-        {children}
-      </section>
+      <PageLayerContext.Provider value={layer}>
+        <section
+          id={id}
+          aria-label={label}
+          tabIndex={-1}
+          className={cx(styles.scroller, centered && styles.centered)}
+        >
+          {children}
+        </section>
+      </PageLayerContext.Provider>
+
+      <div ref={setLayer} className={styles.layer} />
     </div>
   );
 }

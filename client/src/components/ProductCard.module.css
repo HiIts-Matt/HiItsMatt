@@ -1,0 +1,142 @@
+/*
+ * The Personal Work card, carrying a career product: same padding, border,
+ * radius, surface and hover. The product's colour arrives as `--accent`.
+ */
+.card {
+  display: flex;
+  flex-direction: column;
+  gap: clamp(0.75rem, 1.5vw, 1.1rem);
+  min-width: 0;
+  padding: clamp(0.75rem, 1.5vw, 1rem);
+  border: 1px solid var(--c-border);
+  border-radius: var(--radius);
+  background: var(--c-surface);
+  transition:
+    border-color 200ms ease,
+    background 200ms ease;
+}
+
+.card:hover,
+.card[data-active] {
+  border-color: var(--c-border-strong);
+  background: var(--c-surface-hover);
+}
+
+/*
+ * The same surface made opaque: the translucent white laid over the page's ink
+ * rather than over whatever card is underneath it.
+ */
+.solid {
+  background: linear-gradient(var(--c-surface), var(--c-surface)), var(--c-ink);
+}
+
+.solid:hover,
+.solid[data-active] {
+  background: linear-gradient(var(--c-surface-hover), var(--c-surface-hover)), var(--c-ink);
+}
+
+.cover {
+  flex: none;
+  display: grid;
+  place-items: center;
+  aspect-ratio: 16 / 9;
+  overflow: hidden;
+  border: 1px solid var(--c-border);
+  border-radius: 10px;
+  /* The product's colour as light from below, so the logo sits in it. */
+  background:
+    radial-gradient(120% 90% at 50% 115%, color-mix(in srgb, var(--accent) 16%, transparent), transparent 70%),
+    var(--c-ink-raised);
+}
+
+/* Logos come in every aspect ratio: FraudX's is 3.5:1, KomplyX's square. */
+.logo {
+  width: auto;
+  height: auto;
+  max-width: 52%;
+  max-height: 44%;
+  object-fit: contain;
+}
+
+.initials {
+  font-family: var(--font-display);
+  font-size: clamp(1.75rem, 4vw, 2.5rem);
+  letter-spacing: 0.08em;
+  color: var(--accent);
+}
+
+/* A long name keeps its line; the dates drop under it instead. */
+.titleRow {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  column-gap: 0.75rem;
+  row-gap: 0.15rem;
+}
+
+.title {
+  font-size: clamp(1.25rem, 1.6vw, 1.6rem);
+  white-space: nowrap;
+}
+
+.range {
+  flex: none;
+  font-family: var(--font-mono);
+  font-size: 0.74rem;
+  color: var(--c-faint);
+}
+
+.tagline {
+  color: var(--c-text);
+  font-size: 0.95rem;
+  text-wrap: pretty;
+}
+
+.highlights {
+  display: grid;
+  gap: 0.45rem;
+}
+
+.highlights li {
+  position: relative;
+  padding-inline-start: 0.95rem;
+  color: var(--c-muted);
+  font-size: 0.88rem;
+  line-height: 1.55;
+  text-wrap: pretty;
+}
+
+.highlights li::before {
+  content: "";
+  position: absolute;
+  inset-inline-start: 0;
+  top: 0.62em;
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: var(--accent);
+}
+
+/* Pushed to the foot of the card so chips line up across a row. */
+.tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  margin-block-start: auto;
+}
+
+.tag {
+  padding: 0.18rem 0.6rem;
+  border: 1px solid var(--c-border);
+  border-radius: 999px;
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  color: var(--c-muted);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .card {
+    transition: none;
+  }
+}

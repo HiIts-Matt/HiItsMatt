@@ -7,7 +7,7 @@ type SideNavProps = {
   activeId: string;
   onSelect: (id: string) => void;
   /**
-   * A project's page is open, so the rail names three pages that are all off
+   * A project's page is open, so the rail names pages that are all off
    * to the side. It leaves with them rather than floating over a sub-page it
    * cannot navigate to.
    */

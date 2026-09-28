@@ -1,0 +1,455 @@
+/*
+ * Label column plus a track column shared by every row and the axis, so a date
+ * sits at the same x in all of them. Colour comes only from the bars and their
+ * debris: the chrome around them is the page's own greys.
+ *
+ * Every rule outside `[data-revealed]` describes the finished chart. The reveal
+ * is animations only, played from their first frame when the page arrives and
+ * dropped when it leaves, which is also the whole reduced-motion story.
+ */
+.timeline {
+  --label-width: 9.5rem;
+  --track-height: 14px;
+
+  display: grid;
+  gap: 0.6rem;
+}
+
+.rows {
+  display: grid;
+  gap: 0.85rem;
+}
+
+.row {
+  display: grid;
+  grid-template-columns: var(--label-width) minmax(0, 1fr);
+  align-items: center;
+  gap: 1rem;
+}
+
+.label {
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+  min-width: 0;
+  font-size: 0.86rem;
+  white-space: nowrap;
+}
+
+.dot {
+  flex: none;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--accent);
+}
+
+.track {
+  position: relative;
+  height: var(--track-height);
+  border-radius: 999px;
+  background: rgb(255 255 255 / 3%);
+}
+
+.gridline {
+  position: absolute;
+  inset-block: -0.45rem;
+  width: 1px;
+  background: var(--c-border);
+}
+
+/*
+ * A bar and its burst share the bar's geometry (inline --l, --w, as percentages
+ * of the track) and its motion (--bar-delay, --dur, and --impact, 0–1: how
+ * heavy this stretch of work was next to the heaviest one).
+ */
+.bar,
+.burst {
+  /* A week is a sliver at this scale; never let a real period vanish. */
+  --final: max(var(--track-height), var(--w));
+  /* Heavier bars carry more momentum past their end. */
+  --over: calc(4px + 14px * var(--impact));
+  --start: calc(var(--reveal-delay) + var(--bar-delay));
+}
+
+.bar {
+  position: absolute;
+  inset-block: 0;
+  left: var(--l);
+  width: var(--final);
+}
+
+/*
+ * The coloured body. Separate from `.bar` so length (the bar's width) and
+ * weight (this element's squash and stretch) are keyed independently, and so
+ * the rounded ends are never distorted by a horizontal scale.
+ */
+.fill {
+  position: absolute;
+  inset: 0;
+  border-radius: 999px;
+  background: var(--accent);
+  box-shadow: 0 0 18px -6px var(--accent);
+  transform-origin: left center;
+  transition: filter 200ms ease;
+}
+
+/* Leading-edge glint: only visible in flight, as a speed accent. */
+.fill::after {
+  content: "";
+  position: absolute;
+  inset-block: 1px;
+  right: 1px;
+  width: 12px;
+  border-radius: 999px;
+  background: linear-gradient(to right, rgb(255 255 255 / 0%), rgb(255 255 255 / 75%));
+  opacity: 0;
+}
+
+/* The product's card is under the pointer: its bars lift, nothing else changes. */
+.bar[data-active] .fill {
+  filter: brightness(1.22) saturate(1.1);
+}
+
+/* Its card has been played: the bars are ringed as well as lit, so they read
+   as the ones the card below is about. */
+.bar[data-selected] .fill {
+  outline: 2px solid color-mix(in srgb, var(--accent) 60%, white);
+  outline-offset: 3px;
+}
+
+/* Debris thrown from the point of impact: the bar's end at full overshoot. */
+.burst {
+  position: absolute;
+  top: 50%;
+  left: calc(var(--l) + var(--final) + var(--over));
+  width: 0;
+  height: 0;
+  pointer-events: none;
+}
+
+.particle {
+  position: absolute;
+  background: var(--accent);
+  opacity: 0;
+}
+
+.particle[data-tint] {
+  background: color-mix(in srgb, var(--accent) 50%, white);
+}
+
+.particle[data-shape="dot"] {
+  width: 4px;
+  height: 4px;
+  margin: -2px 0 0 -2px;
+  border-radius: 50%;
+}
+
+.particle[data-shape="square"] {
+  width: 4px;
+  height: 4px;
+  margin: -2px 0 0 -2px;
+  border-radius: 1px;
+}
+
+.particle[data-shape="dash"] {
+  width: 8px;
+  height: 2px;
+  margin: -1px 0 0 -4px;
+  border-radius: 1px;
+}
+
+.particle[data-shape="tri"] {
+  width: 6px;
+  height: 6px;
+  margin: -3px 0 0 -3px;
+  clip-path: polygon(50% 0, 100% 100%, 0 100%);
+}
+
+/* ------------------------------------------------------------------ reveal */
+
+.timeline[data-revealed] .label {
+  animation: label-in 460ms cubic-bezier(0.2, 0.8, 0.2, 1) calc(var(--reveal-delay) + var(--row-delay)) both;
+}
+
+.timeline[data-revealed] .dot {
+  animation: dot-pop 420ms cubic-bezier(0.3, 1.8, 0.5, 1) calc(var(--reveal-delay) + var(--row-delay)) both;
+}
+
+.timeline[data-revealed] .bar {
+  animation: launch var(--dur) linear var(--start) both;
+}
+
+.timeline[data-revealed] .fill {
+  animation: weight var(--dur) linear var(--start) both;
+}
+
+.timeline[data-revealed] .fill::after {
+  animation: glint var(--dur) linear var(--start) both;
+}
+
+.timeline[data-revealed] .particle {
+  animation: fly 620ms cubic-bezier(0.1, 0.75, 0.25, 1) calc(var(--start) + var(--dur) * 0.56) both;
+}
+
+.timeline[data-revealed] .particle[data-shape="dash"] {
+  animation-name: streak;
+}
+
+@keyframes label-in {
+  from {
+    opacity: 0;
+    translate: -8px 0;
+  }
+}
+
+@keyframes dot-pop {
+  from {
+    scale: 0;
+  }
+}
+
+/*
+ * Length, keyed by hand. Easing is per segment:
+ *   0–24%   a dot at the start date: it pops in, then winds up (see `weight`)
+ *   24–56%  release: fast off the mark, easing into the overshoot
+ *   56–100% spring back through two decaying swings and settle
+ */
+@keyframes launch {
+  0% {
+    width: var(--track-height);
+  }
+
+  24% {
+    width: var(--track-height);
+    animation-timing-function: cubic-bezier(0.3, 0, 0.12, 1);
+  }
+
+  56% {
+    width: calc(var(--final) + var(--over));
+    animation-timing-function: cubic-bezier(0.45, 0, 0.55, 1);
+  }
+
+  71% {
+    width: calc(var(--final) - var(--over) * 0.4);
+    animation-timing-function: cubic-bezier(0.45, 0, 0.55, 1);
+  }
+
+  85% {
+    width: calc(var(--final) + var(--over) * 0.12);
+    animation-timing-function: cubic-bezier(0.45, 0, 0.55, 1);
+  }
+
+  100% {
+    width: var(--final);
+  }
+}
+
+/*
+ * Weight, on the same clock as `launch`:
+ *   0–7%    grow from nothing to past full size, from the dot's centre
+ *   7–12%   drop back to exactly its size
+ *   12–14%  a beat at rest, while the pivot moves to the start date (at scale
+ *           1, so moving it shows nothing)
+ *   14–22%  squash back against the start: the anticipation
+ *   then    stretch thin in flight, flatten on impact in proportion to how
+ *           heavy the bar is, and wobble out
+ */
+@keyframes weight {
+  0% {
+    transform: scale(0);
+    transform-origin: calc(var(--track-height) / 2) 50%;
+    animation-timing-function: cubic-bezier(0.2, 0.7, 0.3, 1);
+  }
+
+  7% {
+    transform: scale(1.35);
+    transform-origin: calc(var(--track-height) / 2) 50%;
+    animation-timing-function: cubic-bezier(0.45, 0, 0.55, 1);
+  }
+
+  12% {
+    transform: scale(1);
+    transform-origin: calc(var(--track-height) / 2) 50%;
+  }
+
+  14% {
+    transform: scale(1);
+    transform-origin: 0 50%;
+    animation-timing-function: cubic-bezier(0.45, 0, 0.55, 1);
+  }
+
+  22% {
+    transform: scale(0.68, 1.3);
+    transform-origin: 0 50%;
+    animation-timing-function: cubic-bezier(0.3, 0, 0.15, 1);
+  }
+
+  32% {
+    transform: scale(1, 0.58);
+    animation-timing-function: ease-in-out;
+  }
+
+  53% {
+    transform: scale(1, 0.72);
+    animation-timing-function: cubic-bezier(0.2, 0, 0.3, 1);
+  }
+
+  59% {
+    transform: scale(1, calc(1.14 + 0.32 * var(--impact)));
+    animation-timing-function: cubic-bezier(0.45, 0, 0.55, 1);
+  }
+
+  71% {
+    transform: scale(1, 0.88);
+    animation-timing-function: cubic-bezier(0.45, 0, 0.55, 1);
+  }
+
+  84% {
+    transform: scale(1, 1.05);
+    animation-timing-function: cubic-bezier(0.45, 0, 0.55, 1);
+  }
+
+  100% {
+    transform: scale(1);
+  }
+}
+
+@keyframes glint {
+  0%,
+  24% {
+    opacity: 0;
+  }
+
+  32% {
+    opacity: 0.9;
+  }
+
+  52% {
+    opacity: 0.55;
+  }
+
+  62%,
+  100% {
+    opacity: 0;
+  }
+}
+
+/* Tumbling pieces: out fast, shrinking and turning as they slow. */
+@keyframes fly {
+  0% {
+    opacity: 0;
+    transform: translate(0, 0) rotate(0deg) scale(0.4);
+  }
+
+  10% {
+    opacity: 1;
+    transform: translate(calc(var(--dx) * 0.3), calc(var(--dy) * 0.3)) rotate(calc(var(--rot) * 0.2)) scale(1);
+  }
+
+  100% {
+    opacity: 0;
+    transform: translate(var(--dx), var(--dy)) rotate(var(--rot)) scale(0.2);
+  }
+}
+
+/* Dashes fly point-first along their line and shorten as they go. */
+@keyframes streak {
+  0% {
+    opacity: 0;
+    transform: translate(0, 0) rotate(var(--rot)) scaleX(1.6);
+  }
+
+  10% {
+    opacity: 1;
+    transform: translate(calc(var(--dx) * 0.3), calc(var(--dy) * 0.3)) rotate(var(--rot)) scaleX(1.3);
+  }
+
+  100% {
+    opacity: 0;
+    transform: translate(var(--dx), var(--dy)) rotate(var(--rot)) scaleX(0.2);
+  }
+}
+
+/* ------------------------------------------------------------------ axis */
+
+.axis {
+  display: grid;
+  grid-template-columns: var(--label-width) minmax(0, 1fr);
+  gap: 1rem;
+}
+
+.ticks {
+  grid-column: 2;
+  position: relative;
+  height: 1.1rem;
+  font-family: var(--font-mono);
+  font-size: 0.68rem;
+  color: var(--c-faint);
+}
+
+.tick,
+.end {
+  position: absolute;
+  top: 0;
+  white-space: nowrap;
+}
+
+.tick {
+  translate: -50% 0;
+}
+
+.tick[data-start] {
+  translate: 0 0;
+}
+
+.end {
+  right: 0;
+  color: var(--c-muted);
+}
+
+.visuallyHidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+/* No reveal: the chart is simply there, and nothing is thrown. */
+@media (prefers-reduced-motion: reduce) {
+  .timeline[data-revealed] :is(.label, .dot, .bar, .fill, .particle),
+  .timeline[data-revealed] .fill::after {
+    animation: none;
+  }
+
+  .burst {
+    display: none;
+  }
+
+  .fill {
+    transition: none;
+  }
+}
+
+/* The label goes above its bar; every other month label goes, so the rest fit. */
+@media (max-width: 640px) {
+  .row,
+  .axis {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 0.4rem;
+  }
+
+  .rows {
+    gap: 0.9rem;
+  }
+
+  .ticks {
+    grid-column: 1;
+  }
+
+  .tick:nth-child(even) {
+    display: none;
+  }
+}

@@ -13,3 +13,8 @@ dist-ssr
 .vite
 .DS_Store
 Thumbs.db
+
+# Career data working copies (they name private work repositories) and the
+# local stand-in for the data bucket.
+.career
+server/.data

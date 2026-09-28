@@ -1,0 +1,218 @@
+/*
+ * A hand of cards along the bottom of the page layer. Geometry is all custom
+ * properties: `--n` cards on the hand, `--i` per card, so any number of
+ * products fans correctly without a line of layout code.
+ *
+ * Each card is five nested boxes, one job each, so their motions compose
+ * instead of fighting over one `transform`:
+ *
+ *   .slot     dealt in or out (the only transition with a stagger)
+ *   .pose     its place in the fan: rest, raised, parted aside, or played
+ *   .float    the idle bob of a held card
+ *   .tilt     leaning towards the pointer while held
+ *   .flipper  front or back
+ */
+.hand {
+  /* A playing card's 5:7 (2.5 × 3.5 in). Career.tsx mirrors the height. */
+  --card-w: 18rem;
+  --card-h: 25.2rem;
+  /* How much of each card shows above the bottom edge: nearly all of it, the
+     bottom just tucked below the screen, as a hand is held. */
+  --peek: calc(var(--card-h) - 3rem);
+  --lift: 28px;
+  --tilt-step: 3.5deg;
+
+  position: absolute;
+  bottom: 0;
+  /* The scroller's content column: clear of the nav rail, inside the gutter. */
+  left: calc(var(--gutter) + var(--nav-width));
+  right: var(--gutter);
+  height: var(--card-h);
+  pointer-events: none;
+}
+
+.row {
+  position: relative;
+  width: min(100%, 1320px);
+  height: 100%;
+  margin-inline: auto;
+  container-type: inline-size;
+}
+
+.slot {
+  /* Overlap tightens as the hand grows, so it always spans ~90% of the column. */
+  --spread: min(calc(var(--card-w) * 0.62), calc((100cqw * 0.9 - var(--card-w)) / max(var(--n) - 1, 1)));
+  --x: calc((100cqw - var(--card-w) - var(--spread) * (var(--n) - 1)) / 2 + var(--spread) * var(--i));
+  --a: calc((var(--i) - (var(--n) - 1) / 2) * var(--tilt-step));
+  /* How far a neighbour moves to uncover the raised card completely. */
+  --part: calc(var(--card-w) - var(--spread) + 1rem);
+  --rest-y: calc(var(--card-h) - var(--peek));
+
+  position: absolute;
+  left: 0;
+  bottom: 0;
+  width: var(--card-w);
+  height: var(--card-h);
+  /* Right over left, as a hand is held. */
+  z-index: calc(var(--i) + 1);
+  /* Out of the hand: below the screen, dropped fast, outermost last. */
+  transform: translateY(calc(var(--card-h) + 3rem));
+  transition: transform 420ms cubic-bezier(0.55, 0, 0.8, 0.2) calc(var(--i) * 40ms);
+}
+
+/* Dealt in: timed with the timeline's reveal, springing past its place. */
+.hand[data-shown] .slot {
+  transform: translateY(0);
+  transition: transform 760ms cubic-bezier(0.3, 1.35, 0.55, 1) calc(var(--deal-delay) + var(--i) * 90ms);
+}
+
+.slot[data-state="raised"] {
+  z-index: 40;
+}
+
+.slot[data-state="selected"] {
+  z-index: 60;
+}
+
+/*
+ * Anchored at its top-left rather than filling the slot, so a played card can
+ * really grow — a bigger box with the same text in it, not a zoom.
+ */
+.pose {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: var(--card-w);
+  height: var(--card-h);
+  /* Far below the card, so tilting fans the hand on an arc. */
+  transform-origin: 50% 260%;
+  transform: translateX(var(--x)) translateY(var(--rest-y)) rotate(var(--a));
+  transition:
+    transform 460ms cubic-bezier(0.34, 1.4, 0.64, 1),
+    width 460ms cubic-bezier(0.22, 1, 0.36, 1),
+    height 460ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.slot[data-state="raised"] .pose {
+  transform: translateX(var(--x)) translateY(calc(var(--rest-y) - var(--lift))) rotate(0deg);
+}
+
+/* Parted around the raised card, never past the column's edge. */
+.slot[data-state="left"] .pose {
+  transform: translateX(max(calc(var(--x) - var(--part)), -1.5rem)) translateY(calc(var(--rest-y) + 0.75rem))
+    rotate(calc(var(--a) - 2deg));
+}
+
+.slot[data-state="right"] .pose {
+  transform: translateX(min(calc(var(--x) + var(--part)), calc(100cqw - var(--card-w) + 1.5rem)))
+    translateY(calc(var(--rest-y) + 0.75rem)) rotate(calc(var(--a) + 2deg));
+}
+
+/*
+ * Played: centred, just under the timeline, and grown by --grow (up to 1.5×,
+ * as much as fits under the graph); the caller measures both. It is there to
+ * be read, so it arrives without overshoot and then holds still: no bob, no
+ * tilt towards the pointer. It keeps the raised card's styles.
+ */
+.slot[data-state="selected"] .pose {
+  width: calc(var(--card-w) * var(--grow));
+  height: calc(var(--card-h) * var(--grow));
+  transform: translateX(calc(50cqw - var(--card-w) * var(--grow) / 2)) translateY(var(--focus-shift)) rotate(0deg);
+  transition:
+    transform 560ms cubic-bezier(0.22, 1, 0.36, 1),
+    width 560ms cubic-bezier(0.22, 1, 0.36, 1),
+    height 560ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.float {
+  position: absolute;
+  inset: 0;
+  perspective: 1100px;
+  /* Each card on its own phase, so the hand breathes rather than marches. */
+  animation: bob 4.6s ease-in-out calc(var(--i) * -1.15s) infinite;
+}
+
+.tilt {
+  position: absolute;
+  inset: 0;
+  transform-style: preserve-3d;
+  transform: rotateX(var(--rx, 0deg)) rotateY(var(--ry, 0deg));
+  transition: transform 220ms ease-out;
+}
+
+.slot[data-state="selected"] .float {
+  animation: none;
+}
+
+.slot[data-state="selected"] .tilt {
+  transform: none;
+}
+
+.flipper {
+  position: absolute;
+  inset: 0;
+  transform-style: preserve-3d;
+  /* Turns over as it arrives, not before it has left the hand. */
+  transition: transform 600ms cubic-bezier(0.45, 0, 0.2, 1) 120ms;
+}
+
+.slot[data-flipped] .flipper {
+  transform: rotateY(180deg);
+}
+
+.front,
+.back {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  backface-visibility: hidden;
+  pointer-events: auto;
+  cursor: pointer;
+  box-shadow: 0 18px 40px -18px rgb(0 0 0 / 75%);
+  /* Cards are handled, not read from like a page: a click or a drag across
+     the hand should never start selecting text or dragging the logo. */
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+.front img,
+.back img {
+  -webkit-user-drag: none;
+}
+
+.back {
+  transform: rotateY(180deg);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-width: thin;
+  scrollbar-color: var(--c-border-strong) transparent;
+}
+
+@keyframes bob {
+  0%,
+  100% {
+    translate: 0 0;
+    rotate: -0.35deg;
+  }
+
+  50% {
+    translate: 0 -4px;
+    rotate: 0.35deg;
+  }
+}
+
+/* Every state still applies; it just arrives without travelling. */
+@media (prefers-reduced-motion: reduce) {
+  .slot,
+  .hand[data-shown] .slot,
+  .pose,
+  .slot[data-state="selected"] .pose,
+  .tilt,
+  .flipper {
+    transition: none;
+  }
+
+  .float {
+    animation: none;
+  }
+}

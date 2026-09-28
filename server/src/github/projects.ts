@@ -1,5 +1,6 @@
 import { cached } from "../cache.js";
 import { env } from "../env.js";
+import { snapshotted } from "../snapshots.js";
 import { renderArticle } from "./article.js";
 import { getReadmeMarkdown } from "./catalog.js";
 import { readmeExcerpt } from "./markdown.js";
@@ -294,7 +295,7 @@ async function buildProject(
   name: string,
 ): Promise<{ project: Project; assets: ProjectAssets } | null> {
   const fullName = `${owner}/${name}`;
-  const repo = await cached(`project-repo:${fullName}`, METADATA_TTL_MS, () =>
+  const repo = await snapshotted(`project-repo:${fullName}`, METADATA_TTL_MS, () =>
     fetchRepo(owner, name),
   );
 
@@ -307,12 +308,12 @@ async function buildProject(
   }
 
   const [manifestJson, available] = await Promise.all([
-    cached(`project-manifest:${fullName}`, CONTENT_TTL_MS, async () => {
+    snapshotted(`project-manifest:${fullName}`, CONTENT_TTL_MS, async () => {
       const response = await fetchRepoFile(owner, name, MANIFEST_PATH);
 
       return response ? await response.text() : null;
     }),
-    cached(`project-media:${fullName}`, CONTENT_TTL_MS, () => discoverMedia(owner, name)),
+    snapshotted(`project-media:${fullName}`, CONTENT_TTL_MS, () => discoverMedia(owner, name)),
   ]);
 
   const manifest = manifestJson ? parseManifest(manifestJson, fullName) : {};
@@ -501,7 +502,7 @@ export async function getProjectArticle(slug: string): Promise<string | null> {
 
   const { owner, name, paths } = assets;
 
-  return await cached(`project-article:${owner}/${name}`, CONTENT_TTL_MS, async () => {
+  return await snapshotted(`project-article:${owner}/${name}`, CONTENT_TTL_MS, async () => {
     const response = await fetchRepoFile(owner, name, ARTICLE_PATH);
 
     if (!response) {

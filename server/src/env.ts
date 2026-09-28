@@ -166,6 +166,8 @@ const corsOrigins = (process.env.CORS_ORIGINS ?? "http://localhost:5173")
   .map((origin) => origin.trim())
   .filter((origin) => origin.length > 0);
 
+const dataBucket = process.env.DATA_BUCKET?.trim();
+
 export const env = Object.freeze({
   githubUsername,
   // Optional on purpose: the server boots without it and only the contribution
@@ -177,4 +179,10 @@ export const env = Object.freeze({
   projectEntries: Object.freeze(projectEntries) as readonly ProjectEntryTarget[],
   corsOrigins,
   port: Number(process.env.PORT ?? 3000),
+  // Where the career documents and the GitHub fallback snapshots live: an S3
+  // bucket when DATA_BUCKET is set (always, on Lambda), otherwise a directory
+  // on disk so local development needs no AWS at all.
+  dataStore: dataBucket
+    ? ({ kind: "s3", bucket: dataBucket, region: process.env.AWS_REGION?.trim() || undefined } as const)
+    : ({ kind: "fs", dir: process.env.DATA_DIR?.trim() || fileURLToPath(new URL("../.data", import.meta.url)) } as const),
 });

@@ -1,9 +1,11 @@
 import { Hono } from "hono";
 import { cors } from "hono/cors";
 import { logger } from "hono/logger";
+import { CareerError } from "./career/index.js";
 import { env } from "./env.js";
 import { GitHubError } from "./github/rest.js";
 import { release } from "./release.js";
+import { careerRoutes } from "./routes/career.js";
 import { githubRoutes } from "./routes/github.js";
 
 const app = new Hono().basePath("/api");
@@ -18,9 +20,10 @@ app.use(
 );
 
 app.onError((error, c) => {
-  if (error instanceof GitHubError) {
-    // GitHubError statuses are chosen upstream: 429 rate limit, 503 missing
+  if (error instanceof GitHubError || error instanceof CareerError) {
+    // Statuses are chosen upstream. GitHubError: 429 rate limit, 503 missing
     // capability, 404 unknown repo, 502 anything else GitHub did.
+    // CareerError: 404 nothing published yet.
     return c.json({ error: error.message }, error.status);
   }
 
@@ -35,7 +38,8 @@ const routes = app
   .get("/health", (c) =>
     c.json({ ok: true as const, release, uptimeSeconds: Math.round(process.uptime()) }),
   )
-  .route("/github", githubRoutes);
+  .route("/github", githubRoutes)
+  .route("/career", careerRoutes);
 
 export { app };
 export type AppType = typeof routes;
@@ -55,3 +59,5 @@ export type {
   ProjectMediaKind,
   Repo,
 } from "./github/types.js";
+export type { ActivityPeriod, Career, CareerJob, CareerProduct } from "./career/timeline.js";
+export type { ActivityWeek } from "./career/schema.js";

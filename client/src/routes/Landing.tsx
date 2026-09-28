@@ -5,6 +5,7 @@ import { Section } from "../components/Section";
 import { SideNav } from "../components/SideNav";
 import { PAGE_OVERLAP_MS, PAGE_SETTLE_MS, PAGE_SLIDE_MS, usePager } from "../hooks/usePager";
 import { usePrefersReducedMotion } from "../hooks/usePrefersReducedMotion";
+import { Career } from "../sections/Career";
 import { Intro } from "../sections/Intro";
 import { IntroBackdrop } from "../sections/IntroBackdrop";
 import { Overview } from "../sections/Overview";
@@ -13,7 +14,7 @@ import { Projects, useProjects } from "../sections/Projects";
 import { SECTIONS, SECTION_IDS } from "../sections/sections";
 import styles from "./Landing.module.css";
 
-const [intro, overview, projects] = SECTIONS;
+const [intro, career, overview, projects] = SECTIONS;
 
 /** Below this the curtain feels like a flash rather than a transition. */
 const MIN_CURTAIN_MS = 650;
@@ -241,12 +242,22 @@ export function Landing() {
             centered
             backdrop={<IntroBackdrop onReady={handleBackdropReady} />}
           >
-            <Intro revealed={phase === "ready"} onAdvance={() => goTo(overview.id)} />
+            <Intro revealed={phase === "ready"} onAdvance={() => goTo(career.id)} />
           </Section>
 
-          {/* Both run past one screen: the overview carries the repo belt under
-              the profile, and the projects page grows with each published case.
+          {/* The rest run past one screen: the career page carries its timeline
+              and a card per product, the overview the repo belt under the
+              profile, and the projects page grows with each published case.
               Each scrolls inside its own page. */}
+          <Section
+            id={career.id}
+            label={career.label}
+            role={pager.roleOf(career.id)}
+            direction={pager.direction}
+          >
+            <Career onscreen={pager.roleOf(career.id) !== "hidden"} />
+          </Section>
+
           <Section
             id={overview.id}
             label={overview.label}
@@ -285,8 +296,8 @@ export function Landing() {
         </div>
       </div>
 
-      {/* The rail names the three pages of the stack, and the stack is not what
-          is on screen while a project page is. */}
+      {/* The rail names the pages of the stack, and the stack is not what is on
+          screen while a project page is. */}
       <SideNav activeId={activeId} onSelect={goTo} hidden={open} />
 
       {phase !== "ready" && <Loader exiting={phase === "revealing"} onExited={finishReveal} />}

@@ -1,0 +1,8 @@
+{
+  "authors": ["you@example.com", "12345678+your-login@users.noreply.github.com"],
+  "products": {
+    "product-a": [{ "repo": "../product-a-frontend" }, { "repo": "../product-a-backend" }],
+    "platform": [{ "repo": "../monorepo", "exclude": ["portal"] }]
+  },
+  "rest": { "product": "other", "owner": "your-employer-org", "dir": ".." }
+}

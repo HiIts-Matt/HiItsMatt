@@ -317,6 +317,7 @@ Choose **Author from scratch**, then:
 | `GITHUB_USERNAME` | your GitHub login — the server refuses to boot without it |
 | `GITHUB_TOKEN` | scopeless classic, or fine-grained if any listed repo is private |
 | `PROJECT_REPOS` | the curated list, same syntax as `server/.env.example` |
+| `DATA_BUCKET` | the data bucket below — `hiitsmatt-data` |
 
 `GITHUB_TOKEN` is not optional here the way it is locally. The in-process cache
 lives in one execution environment, so every cold start refetches from GitHub —
@@ -325,6 +326,38 @@ shares with other tenants. Without a token the site will intermittently 429 for
 reasons that have nothing to do with your traffic.
 
 `CORS_ORIGINS` is not needed: CloudFront makes the API same-origin.
+
+**The data bucket.** The career page and the GitHub fallback snapshots are
+JSON documents in a second, private bucket, published by `npm run career`
+rather than by a deploy. Without `DATA_BUCKET` the server falls back to a
+directory inside the bundle, which on Lambda is always empty: the career page
+reports "not published yet" however many times you push. Create it with the
+same settings as the site bucket (general purpose, ACLs disabled, all public
+access blocked, SSE-S3), then let the function's execution role use it —
+**Configuration → Permissions →** the role name → **Add permissions → Create
+inline policy → JSON**:
+
+```json
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Effect": "Allow",
+      "Action": ["s3:GetObject", "s3:PutObject"],
+      "Resource": "arn:aws:s3:::hiitsmatt-data/*"
+    },
+    {
+      "Effect": "Allow",
+      "Action": "s3:ListBucket",
+      "Resource": "arn:aws:s3:::hiitsmatt-data"
+    }
+  ]
+}
+```
+
+`ListBucket` looks unnecessary and is not: without it S3 answers a key that
+does not exist yet with `403` instead of `404`, and the server turns a merely
+unpublished document into a 500.
 
 **Code → Runtime settings → Edit**
 - Handler: **`index.handler`**.
@@ -814,7 +847,7 @@ record is still proxied.
 copy .env.deploy.example .env.deploy
 ```
 
-Fill in the four ids you wrote down, then:
+Fill in the five ids you wrote down, then:
 
 ```
 npm run deploy

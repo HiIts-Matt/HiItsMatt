@@ -1,6 +1,6 @@
 import { ShaderGradient, ShaderGradientCanvas } from "@shadergradient/react";
 import { useFrame } from "@react-three/fiber";
-import { memo, useRef } from "react";
+import { memo, useEffect, useRef } from "react";
 
 import { GRADIENT_URL } from "./gradient";
 import styles from "./GradientBackdrop.module.css";
@@ -40,6 +40,19 @@ function ReadySignal({ onReady }: { onReady: () => void }) {
  * because every re-render of `Canvas` reconfigures the renderer.
  */
 function GradientBackdrop({ animate, onReady }: GradientBackdropProps) {
+  /*
+   * The canvas sizes itself from a ResizeObserver inside @react-three/fiber
+   * (react-use-measure), and on many loads that first measurement is dropped
+   * while the component is still mounting. The canvas then stays at the
+   * browser's default 300×150 and never draws, and the loader waits out its
+   * backstop, until something happens to resize the window. One resize event
+   * once the canvas has mounted makes it measure again. Child effects run
+   * before this one, so the canvas's own listeners are already attached.
+   */
+  useEffect(() => {
+    window.dispatchEvent(new Event("resize"));
+  }, []);
+
   return (
     <div className={styles.backdrop} aria-hidden="true">
       <div className={styles.stage}>

@@ -14,6 +14,9 @@ type SideNavProps = {
   hidden: boolean;
 };
 
+// Read once: the credit is the year the page was opened in, not a live clock.
+const YEAR = new Date().getFullYear();
+
 export function SideNav({ activeId, onSelect, hidden }: SideNavProps) {
   return (
     <nav
@@ -39,6 +42,14 @@ export function SideNav({ activeId, onSelect, hidden }: SideNavProps) {
           </button>
         );
       })}
+
+      <p className={styles.credit}>
+        <img className={styles.logo} src="/icon.png" alt="" width={22} height={22} />
+        <span className={styles.creditName}>Hi_Its_Matt</span>
+        <span className={styles.creditMeta}>
+          {YEAR} | v{__APP_VERSION__}
+        </span>
+      </p>
     </nav>
   );
 }

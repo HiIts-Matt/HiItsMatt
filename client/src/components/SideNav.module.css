@@ -86,6 +86,40 @@
 }
 
 /*
+ * Signed off under the pages, on two lines: the rail is only as wide as its
+ * longest label, and the page column is laid out around that width
+ * (`--nav-width`), so the credit fits the rail rather than widening it.
+ */
+.credit {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  column-gap: 0.6rem;
+  align-items: center;
+  margin-block-start: 0.35rem;
+  padding: 0.7rem 0.85rem 0.4rem;
+  border-block-start: 1px solid var(--c-border);
+  color: var(--c-faint);
+}
+
+.logo {
+  grid-row: span 2;
+  width: 22px;
+  height: 22px;
+}
+
+.creditName {
+  font-size: 0.74rem;
+  color: var(--c-muted);
+}
+
+.creditMeta {
+  font-family: var(--font-mono);
+  font-size: 0.62rem;
+  letter-spacing: 0.04em;
+  font-variant-numeric: tabular-nums;
+}
+
+/*
  * Phones get the same always-visible labels, laid along the bottom edge where
  * a vertical rail would eat the viewport width.
  */
@@ -127,6 +161,11 @@
   }
 
   .index {
+    display: none;
+  }
+
+  /* The bottom bar is all page links: there is no room for a sign-off. */
+  .credit {
     display: none;
   }
 }

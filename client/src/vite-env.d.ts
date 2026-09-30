@@ -9,3 +9,6 @@ interface ImportMetaEnv {
 interface ImportMeta {
   readonly env: ImportMetaEnv;
 }
+
+/** The site's version from the root package.json, substituted by Vite's `define`. */
+declare const __APP_VERSION__: string;

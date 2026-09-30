@@ -119,8 +119,8 @@ type ActivityTimelineProps = {
   /** Product whose card has been played: its bars are marked on the axis. */
   selected: string | null;
   /**
-   * The page is on screen. Turning true plays the reveal; turning false puts
-   * every bar back at its start, ready for the next visit.
+   * In view on this visit to the page. Turning true plays the reveal; turning
+   * false puts every bar back at its start, ready for the next visit.
    */
   revealed: boolean;
 };

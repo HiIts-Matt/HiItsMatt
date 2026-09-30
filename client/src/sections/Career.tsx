@@ -8,6 +8,7 @@ import { SectionTitle } from "../components/SectionTitle";
 import { useMediaQuery } from "../hooks/useMediaQuery";
 import { usePrefersReducedMotion } from "../hooks/usePrefersReducedMotion";
 import { useResource } from "../hooks/useResource";
+import { useSeen } from "../hooks/useSeen";
 import { api, unwrap } from "../lib/api";
 import styles from "./Career.module.css";
 
@@ -27,7 +28,11 @@ const MAX_GROW = 1.5;
 /** Space below a played card, and above the timeline. */
 const PLAYED_MARGIN_PX = 24;
 const TIMELINE_TOP_PX = 16;
-/** How much of the hand has to scroll into view before it is dealt. */
+/*
+ * How much of each has to scroll into view before it plays: most of the graph,
+ * whose reveal is a sweep across it, but only the top of the taller hand.
+ */
+const REVEAL_THRESHOLD = 0.4;
 const DEAL_THRESHOLD = 0.2;
 
 type JobProps = {
@@ -36,7 +41,7 @@ type JobProps = {
   onscreen: boolean;
   /** Hand of cards (large screens with a mouse), or the grid. */
   hand: boolean;
-  /** The page's scroller: what the hand scrolls into view in, and what playing a card scrolls. */
+  /** The page's scroller: what the graph and hand scroll into view in, and what playing a card scrolls. */
   scroller: HTMLElement | null;
 };
 
@@ -45,41 +50,18 @@ function Job({ job, generatedAt, onscreen, hand, scroller }: JobProps) {
   const [active, setActive] = useState<string | null>(null);
   const [selected, setSelected] = useState<string | null>(null);
   const [grow, setGrow] = useState(1);
-  // The hand has scrolled into view on this visit to the page.
-  const [seen, setSeen] = useState(false);
   const timeline = useRef<HTMLElement>(null);
   const handBox = useRef<HTMLDivElement>(null);
   const reducedMotion = usePrefersReducedMotion();
   const cards = job.products.filter((product) => product.card);
-  const dealt = hand && onscreen && seen;
-
   /*
-   * A hand is dealt the first time it scrolls into view, not before — the
-   * ones further down would otherwise be dealt where nobody sees it — and is
-   * gathered up again only once the page has left, to be dealt on the next visit.
+   * The graph plays its reveal, and the hand is dealt, the first time each
+   * scrolls into view on a visit to the page — not before, where the ones
+   * further down would play to nobody, and not again on scrolling back. Both
+   * reset once the page has left, ready for the next visit.
    */
-  useEffect(() => {
-    const node = handBox.current;
-
-    if (!onscreen) {
-      setSeen(false);
-      return;
-    }
-    if (!hand || !node || !scroller) return;
-
-    const observer = new IntersectionObserver(
-      (entries) => {
-        if (entries.some((entry) => entry.isIntersecting)) {
-          setSeen(true);
-          observer.disconnect();
-        }
-      },
-      { root: scroller, threshold: DEAL_THRESHOLD },
-    );
-
-    observer.observe(node);
-    return () => observer.disconnect();
-  }, [hand, onscreen, scroller]);
+  const revealed = useSeen(timeline, scroller, onscreen, REVEAL_THRESHOLD);
+  const dealt = useSeen(handBox, scroller, hand && onscreen, DEAL_THRESHOLD);
 
   /*
    * Playing a card scrolls the page so the timeline sits just above the hand,
@@ -184,7 +166,7 @@ function Job({ job, generatedAt, onscreen, hand, scroller }: JobProps) {
             active={selected ?? active}
             selected={selected}
             onActive={setActive}
-            revealed={onscreen}
+            revealed={revealed}
           />
           <p className={styles.footnote}>
             Weekly commits from git history
@@ -233,11 +215,8 @@ function Job({ job, generatedAt, onscreen, hand, scroller }: JobProps) {
  * a deploy.
  *
  * `onscreen` is true from the moment the page starts arriving until it has
- * fully left: the timeline replays its reveal on every visit, and resets only
- * once nobody can see it happen.
- *
- * On large screens each employer's products are a hand of cards under its
- * timeline, dealt as it scrolls into view.
+ * fully left. Within that, each employer's graph plays its reveal, and on
+ * large screens its hand of cards is dealt, as it scrolls into view.
  */
 export function Career({ onscreen }: { onscreen: boolean }) {
   const career = useResource("career", () => unwrap(api.career.$get(), "Could not load career details"));

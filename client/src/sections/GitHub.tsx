@@ -1,0 +1,138 @@
+import { ContributionGraph } from "../components/ContributionGraph";
+import { LanguageBar } from "../components/LanguageBar";
+import { RepoCarousel } from "../components/RepoCarousel";
+import { SectionTitle } from "../components/SectionTitle";
+import { useResource } from "../hooks/useResource";
+import { api, unwrap } from "../lib/api";
+import styles from "./GitHub.module.css";
+
+/** The GitHub profile. Shared with the homepage's GitHub card. */
+export function useProfile() {
+  return useResource("profile", () => unwrap(api.github.profile.$get(), "Could not load the GitHub profile"));
+}
+
+/** A year of contributions. Shared with the homepage's GitHub card. */
+export function useContributions() {
+  return useResource("contributions", () =>
+    unwrap(api.github.contributions.$get(), "Could not load the contribution graph"),
+  );
+}
+
+/**
+ * Everything GitHub already knows, read live: the profile, languages by volume,
+ * a year of contributions and a belt of every public repository. The last page
+ * of the stack — the evidence behind the curated pages before it.
+ */
+export function GitHub() {
+  const profile = useProfile();
+  const languages = useResource("languages", () =>
+    unwrap(api.github.languages.$get(), "Could not load the language breakdown"),
+  );
+  const contributions = useContributions();
+
+  return (
+    <div className={styles.layout}>
+      <SectionTitle id="github" />
+
+      <div className={styles.columns}>
+        <article className={styles.card}>
+          {profile.status === "loading" && (
+            <>
+              <div className={styles.skeleton} style={{ height: "76px", borderRadius: "12px" }} />
+              <div className={styles.skeleton} />
+              <div className={styles.skeleton} style={{ width: "70%" }} />
+            </>
+          )}
+
+          {profile.status === "error" && <p className={styles.notice}>{profile.message}</p>}
+
+          {profile.status === "ready" && (
+            <>
+              <div className={styles.identity}>
+                <img
+                  className={styles.avatar}
+                  src={profile.data.avatarUrl}
+                  alt=""
+                  width={96}
+                  height={96}
+                  loading="lazy"
+                  decoding="async"
+                />
+                <div>
+                  <h3 className={styles.name}>{profile.data.name ?? profile.data.login}</h3>
+                  <p className={styles.login}>@{profile.data.login}</p>
+                </div>
+              </div>
+
+              {profile.data.bio && <p className={styles.bio}>{profile.data.bio}</p>}
+
+              <div className={styles.meta}>
+                {profile.data.location && <span className={styles.chip}>{profile.data.location}</span>}
+                {profile.data.company && <span className={styles.chip}>{profile.data.company}</span>}
+                <span className={styles.chip}>
+                  On GitHub since {new Date(profile.data.createdAt).getFullYear()}
+                </span>
+              </div>
+
+              <div className={styles.stats}>
+                <div className={styles.stat}>
+                  <span className={styles.statValue}>{profile.data.publicRepos}</span>
+                  <span className={styles.statLabel}>Public Repos</span>
+                </div>
+                <div className={styles.stat}>
+                  <span className={styles.statValue}>{profile.data.followers}</span>
+                  <span className={styles.statLabel}>Followers</span>
+                </div>
+                <div className={styles.stat}>
+                  <span className={styles.statValue}>
+                    {contributions.status === "ready"
+                      ? contributions.data.total.toLocaleString()
+                      : "—"}
+                  </span>
+                  <span className={styles.statLabel}>Commits/yr</span>
+                </div>
+              </div>
+
+              <a
+                className={styles.profileLink}
+                href={profile.data.htmlUrl}
+                target="_blank"
+                rel="noreferrer"
+              >
+                View profile on GitHub
+              </a>
+            </>
+          )}
+        </article>
+
+        <div className={styles.stack}>
+          <article className={styles.card}>
+            <h3 className={styles.cardTitle}>Languages by volume</h3>
+            {languages.status === "loading" && <div className={styles.skeleton} />}
+            {languages.status === "error" && <p className={styles.notice}>{languages.message}</p>}
+            {languages.status === "ready" && <LanguageBar languages={languages.data.languages} />}
+          </article>
+
+          <article className={styles.card}>
+            <h3 className={styles.cardTitle}>Contributions</h3>
+            {contributions.status === "loading" && <div className={styles.skeleton} />}
+            {contributions.status === "error" && (
+              <p className={styles.notice}>{contributions.message}</p>
+            )}
+            {contributions.status === "ready" && (
+              <ContributionGraph
+                weeks={contributions.data.weeks}
+                total={contributions.data.total}
+              />
+            )}
+          </article>
+        </div>
+      </div>
+
+      {/* The automatic index of everything public, directly under the profile it
+          belongs to; it carries its own heading and view toggle. Curated work
+          lives on Personal Work, the page before this one. */}
+      <RepoCarousel />
+    </div>
+  );
+}

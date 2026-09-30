@@ -11,6 +11,16 @@ export function hasBack(product: CareerProduct): boolean {
   return Boolean(product.description) || product.highlights.length > 0 || product.stats.length > 0;
 }
 
+/** A logo-less product's stand-in: the first letter of each of its first two words. */
+export function productInitials(name: string): string {
+  return name
+    .split(/\s+/)
+    .map((word) => word[0])
+    .join("")
+    .slice(0, 2)
+    .toUpperCase();
+}
+
 /**
  * Built on the Personal Work card: a 16:9 cover (the product's logo on the
  * raised surface), then title and dates, and the product's description. The
@@ -27,12 +37,7 @@ export function CardFront({ product, description = true }: { product: CareerProd
           <img className={styles.logo} src={apiUrl(product.logoUrl)} alt="" loading="lazy" decoding="async" />
         ) : (
           <span className={styles.initials} aria-hidden="true">
-            {product.name
-              .split(/\s+/)
-              .map((word) => word[0])
-              .join("")
-              .slice(0, 2)
-              .toUpperCase()}
+            {productInitials(product.name)}
           </span>
         )}
       </div>

@@ -1,7 +1,7 @@
 {
   "title": "HiItsMatt.dev",
   "tagline": "This site: a portfolio built as a stack of full-screen pages",
-  "summary": "My portfolio. Four full-screen pages that hand over to each other rather than scroll: a shader hero whose gradient ends on a chevron punched out of the ink above it, a live GitHub overview, a career page that draws my work history from weekly commit counts and deals each employer's products as a hand of cards, and a case study page per project carrying its own media, write-up and metadata. A Hono API behind it holds the credentials and the caches, reading the live half of the site from GitHub, the curated half from a `.portfolio` folder committed inside each project's own repository, and the career half from a private data bucket, so private work can be shown without handing a token to the browser. It runs on one CloudFront distribution with two origins — a private S3 bucket and the same Hono app on Lambda — so the browser only ever sees one hostname.",
+  "summary": "My portfolio. Five full-screen pages that hand over to each other rather than scroll: a shader hero whose gradient ends on a chevron punched out of the ink above it, a homepage whose cards jump straight to every page behind it, a career page that draws my work history from weekly commit counts and deals each employer's products as a hand of cards, a case study page per project carrying its own media, write-up and metadata, and a live GitHub page. A Hono API behind it holds the credentials and the caches, reading the live half of the site from GitHub, the curated half from a `.portfolio` folder committed inside each project's own repository, and the career half from a private data bucket, so private work can be shown without handing a token to the browser. It runs on one CloudFront distribution with two origins — a private S3 bucket and the same Hono app on Lambda — so the browser only ever sees one hostname.",
   "year": "2026",
   "status": "Live",
   "tags": ["react", "typescript", "vite", "hono", "three.js", "github-api", "aws", "cloudfront", "lambda", "s3"],
@@ -15,7 +15,7 @@
     },
     {
       "src": "media/02-overview.webp",
-      "alt": "Overview section: profile card, language split, contribution graph and the repository rail",
+      "alt": "GitHub section: profile card, language split, contribution graph and the repository rail",
       "caption": "Everything here is live GitHub data: profile, language volume, a year of contributions."
     },
     {

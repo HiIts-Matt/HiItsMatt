@@ -3,11 +3,18 @@ handful of projects worth a stranger's attention, then get out of the way while
 they read about them. What follows is how it presents that work, and the few
 things that were harder to build than they look.
 
-## Four pages, and one that deals in sideways
+## Five pages, and one that deals in sideways
 
-The landing page is a stack of four full-screen pages: an intro with the
-headline over a shader gradient, an overview that reads live from GitHub, my
-career, and Personal Work, a grid of the projects I actually want to talk about.
+The landing page is a stack of five full-screen pages: an intro with the
+headline over a shader gradient, an overview, my career, Personal Work (a grid
+of the projects I actually want to talk about), and GitHub.
+
+The stack reads front to back, but nobody has to. The overview is the
+homepage: who I am and how to reach me, then a large card for each page behind
+it, each showing a glimpse of what is there (my current role and its products'
+logos, a fan of project covers, a year of commits). Clicking one jumps straight
+there with the same handover as the side nav, so a visitor who reads only one
+page still sees everything else on offer.
 
 Every page is a real path (`/career`, `/projects`), so a reload or a shared link
 comes back to the same page. Changing page replaces the history entry rather than
@@ -15,7 +22,7 @@ pushing one, so Back leaves the site instead of rewinding through every page on
 the way. Links shared from when pages were `#` fragments still land where they
 pointed, and the address is rewritten to the path on arrival.
 
-A project's own page is not a fifth page in the stack. It is a layer beside it:
+A project's own page is not a sixth page in the stack. It is a layer beside it:
 opening one slides the whole stack left and deals the case study in from the
 right, so the site reads as pushed aside rather than replaced. Each project is
 its own URL (`/projects/<slug>`) pushed onto history, so Back closes it, a direct
@@ -95,7 +102,7 @@ back up to one does not replay it.
 
 ## The half I do not write
 
-The overview page is everything GitHub already knows, read live: the profile, a
+The last page is everything GitHub already knows, read live: the profile, a
 language bar weighted by bytes, a year of contributions, and a belt of every
 public repo. The belt drifts sideways by writing `scrollLeft` rather than
 animating a transform, so the ambient motion and your own wheel share one

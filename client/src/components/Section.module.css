@@ -184,7 +184,7 @@
 
 /*
  * The page's own scroller. The document does not scroll at all any more, so
- * every page carries its own overflow: the overview's repo belt and the
+ * every page carries its own overflow: the GitHub page's repo belt and the
  * projects list scroll here, natively, and the pager only takes a gesture over
  * once this scroller has reached the end it is being pushed against.
  *

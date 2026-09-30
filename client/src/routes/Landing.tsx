@@ -7,6 +7,7 @@ import { SideNav } from "../components/SideNav";
 import { PAGE_OVERLAP_MS, PAGE_SETTLE_MS, PAGE_SLIDE_MS, usePager } from "../hooks/usePager";
 import { usePrefersReducedMotion } from "../hooks/usePrefersReducedMotion";
 import { Career } from "../sections/Career";
+import { GitHub } from "../sections/GitHub";
 import { Intro } from "../sections/Intro";
 import { IntroBackdrop } from "../sections/IntroBackdrop";
 import { Overview } from "../sections/Overview";
@@ -15,7 +16,7 @@ import { Projects, useProjects } from "../sections/Projects";
 import { SECTIONS, SECTION_IDS, pagePath, projectPath } from "../sections/sections";
 import styles from "./Landing.module.css";
 
-const [intro, overview, career, projects] = SECTIONS;
+const [intro, overview, career, projects, github] = SECTIONS;
 
 /** Below this the curtain feels like a flash rather than a transition. */
 const MIN_CURTAIN_MS = 650;
@@ -261,17 +262,18 @@ export function Landing() {
             <Intro revealed={phase === "ready"} onAdvance={() => goTo(overview.id)} />
           </Section>
 
-          {/* The rest run past one screen: the overview carries the repo belt
-              under the profile, the career page its timeline and a card per
-              product, and the projects page grows with each published case.
-              Each scrolls inside its own page. */}
+          {/* The rest may run past one screen: the career page carries its
+              timeline and a card per product, the projects page grows with
+              each published case, and the GitHub page has the repo belt under
+              the profile. Each scrolls inside its own page. The overview's
+              cards jump straight to the pages behind it. */}
           <Section
             id={overview.id}
             label={overview.label}
             role={pager.roleOf(overview.id)}
             direction={pager.direction}
           >
-            <Overview />
+            <Overview onNavigate={goTo} />
           </Section>
 
           <Section
@@ -290,6 +292,15 @@ export function Landing() {
             direction={pager.direction}
           >
             <Projects projects={projectList} onOpen={openProject} />
+          </Section>
+
+          <Section
+            id={github.id}
+            label={github.label}
+            role={pager.roleOf(github.id)}
+            direction={pager.direction}
+          >
+            <GitHub />
           </Section>
         </div>
 

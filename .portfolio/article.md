@@ -3,16 +3,22 @@ handful of projects worth a stranger's attention, then get out of the way while
 they read about them. What follows is how it presents that work, and the few
 things that were harder to build than they look.
 
-## Three pages, and one that deals in sideways
+## Four pages, and one that deals in sideways
 
-The landing page is a stack of three full-screen pages: an intro with the
-headline over a shader gradient, an overview that reads live from GitHub, and
-Personal Work, a grid of the projects I actually want to talk about.
+The landing page is a stack of four full-screen pages: an intro with the
+headline over a shader gradient, an overview that reads live from GitHub, my
+career, and Personal Work, a grid of the projects I actually want to talk about.
 
-A project's own page is not a fourth page in the stack. It is a layer beside
-it: opening one slides the whole stack left and deals the case study in from the
-right, so the site reads as pushed aside rather than replaced. Each project is a
-real URL (`#project/<slug>`) pushed onto history, so Back closes it, a direct
+Every page is a real path (`/career`, `/projects`), so a reload or a shared link
+comes back to the same page. Changing page replaces the history entry rather than
+pushing one, so Back leaves the site instead of rewinding through every page on
+the way. Links shared from when pages were `#` fragments still land where they
+pointed, and the address is rewritten to the path on arrival.
+
+A project's own page is not a fifth page in the stack. It is a layer beside it:
+opening one slides the whole stack left and deals the case study in from the
+right, so the site reads as pushed aside rather than replaced. Each project is
+its own URL (`/projects/<slug>`) pushed onto history, so Back closes it, a direct
 link opens straight on it, and focus follows the layer in and back out.
 
 ## The hero ends on a torn edge
@@ -37,7 +43,10 @@ The document does not scroll. Each page is its own scroller, and moving between
 them is a handover: one page slides off, then the next expands out from under
 it. That is two animations in sequence, which a single scroll offset could never
 express, so scroll snapping was never an option. The payoff is that a page's own
-overflow stays completely native, like this article.
+overflow stays completely native, like this article. Neither page scrolls while
+a handover is running, so the tail of the gesture that turned the page cannot
+start reading down the next one before it has settled; the scrollbar's gutter is
+reserved throughout, so hiding it for that moment never reflows the content.
 
 The pager only takes the gesture once the page has nothing left to give, and the
 rule is the same for wheel, arrow keys and swipe: the gesture must have *started*
@@ -55,6 +64,34 @@ rather than `cover`, because this is where the asset is actually looked at.
 Clips never autoplay: someone opening a case study has come to read. The write-up
 runs down the middle at a 72-character measure, with metadata (status, year,
 language, last push, tags, links) in a column beside it.
+
+## Work I cannot link to
+
+![The career page, one card played under its timeline](media/05-career.webp)
+
+Most of what I have built was built at work, in repositories nobody outside can
+open. The career page shows it anyway, without showing any of the code. Each
+employer gets a timeline of the products I worked on, drawn from weekly commit
+counts: four quiet weeks end a period, and heavier stretches land harder when
+the bars launch in.
+
+Those counts come from a small CLI run on my own machine against local clones.
+The work repositories belong to another account, and the only token that could
+read their history from GitHub would also read every line of their source, so
+the history is read locally and only dates and counts leave the machine: no
+code, messages, hashes, file names or repository names. The CLI publishes that,
+plus the hand-written employers, products and logos, as documents in a private
+data bucket the API reads. Adding an employer is a publish, not a deploy.
+
+Under each timeline the products are a hand of cards, fanned on an arc. Pointing
+at a card, or at its row on the graph, lifts it and parts the others around it.
+Clicking plays it: the page scrolls so the graph sits just above the hand, and
+the card grows to whatever fits beneath it (up to one and a half times) and turns
+over to show what I built on it, while the rest of the hand steps aside into a
+stack on either side, each still a strip you can point at and play. The graph
+and the hand only play in once they scroll into view, and once per visit: an
+employer further down is not animated where nobody can see it, and scrolling
+back up to one does not replay it.
 
 ## The half I do not write
 
@@ -107,13 +144,17 @@ headers untouched, so the `206` and `Content-Range` a video seek depends on
 survive. API Gateway cannot stream, which is why the distribution talks to the
 function URL directly.
 
-Deep links needed one more piece. `/projects/<slug>` is a client route, so a
-small CloudFront function on viewer-request rewrites any extension-less path to
+Deep links needed one more piece. Every page is a client route, so a small
+CloudFront function on viewer-request rewrites any extension-less path to
 `/index.html`. It is attached to one behaviour rather than the distribution's
 error responses, so the API's genuine 404s still come back as real 404s instead
 of the HTML shell with status 200. Caching splits on whether a filename is a
 promise: Vite content-hashes everything under `assets/`, immutable for a year;
 root files keep their name and are uploaded `no-cache` and invalidated by path.
+
+The API keeps its own documents, the career data and last-known-good snapshots
+of what it reads from GitHub, in a second private bucket that only the
+function's role can read and write.
 
 ## Motion, and turning it off
 

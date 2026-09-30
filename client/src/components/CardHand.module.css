@@ -1,5 +1,5 @@
 /*
- * A hand of cards along the bottom of the page layer. Geometry is all custom
+ * A hand of cards under an employer's timeline. Geometry is all custom
  * properties: `--n` cards on the hand, `--i` per card, so any number of
  * products fans correctly without a line of layout code.
  *
@@ -16,27 +16,32 @@
   /* A playing card's 5:7 (2.5 × 3.5 in). Career.tsx mirrors the height. */
   --card-w: 18rem;
   --card-h: 25.2rem;
-  /* How much of each card shows above the bottom edge: nearly all of it, the
-     bottom just tucked below the screen, as a hand is held. */
-  --peek: calc(var(--card-h) - 3rem);
   --lift: 28px;
   --tilt-step: 3.5deg;
+  /* The steepest any card leans: the outermost, parted aside. */
+  --fan: calc((var(--n) - 1) / 2 * var(--tilt-step) + 2deg);
+  /*
+   * How far below its resting box a card on the arc reaches: its outer corner
+   * swinging down, the swing about the pivot 1.6 card heights below it, and
+   * the drop of a parted card.
+   */
+  --sag: calc(
+    var(--card-w) / 2 * sin(var(--fan)) + var(--card-h) * 1.6 * (1 - cos(var(--fan))) + 0.75rem
+  );
 
-  position: absolute;
-  bottom: 0;
-  /* The scroller's content column: clear of the nav rail, inside the gutter. */
-  left: calc(var(--gutter) + var(--nav-width));
-  right: var(--gutter);
-  height: var(--card-h);
+  /* Headroom for a raised card, the card, and the arc's lowest corner. */
+  --rest-h: calc(var(--lift) + var(--card-h) + var(--sag));
+
+  position: relative;
+  height: var(--rest-h);
   pointer-events: none;
+  container-type: inline-size;
+  transition: height 560ms cubic-bezier(0.22, 1, 0.36, 1);
 }
 
-.row {
-  position: relative;
-  width: min(100%, 1320px);
-  height: 100%;
-  margin-inline: auto;
-  container-type: inline-size;
+/* Room for the played card, pushing what follows down rather than covering it. */
+.hand[data-played] {
+  height: max(var(--rest-h), calc(var(--card-h) * var(--grow)));
 }
 
 .slot {
@@ -46,24 +51,36 @@
   --a: calc((var(--i) - (var(--n) - 1) / 2) * var(--tilt-step));
   /* How far a neighbour moves to uncover the raised card completely. */
   --part: calc(var(--card-w) - var(--spread) + 1rem);
-  --rest-y: calc(var(--card-h) - var(--peek));
+  /* Low enough that a raised card stays inside the hand. */
+  --rest-y: var(--lift);
 
   position: absolute;
   left: 0;
-  bottom: 0;
+  top: 0;
   width: var(--card-w);
   height: var(--card-h);
   /* Right over left, as a hand is held. */
   z-index: calc(var(--i) + 1);
-  /* Out of the hand: below the screen, dropped fast, outermost last. */
-  transform: translateY(calc(var(--card-h) + 3rem));
-  transition: transform 420ms cubic-bezier(0.55, 0, 0.8, 0.2) calc(var(--i) * 40ms);
+  /* Out of the hand: dropped and faded, outermost last. */
+  opacity: 0;
+  transform: translateY(4rem);
+  transition:
+    transform 420ms cubic-bezier(0.55, 0, 0.8, 0.2) calc(var(--i) * 40ms),
+    opacity 300ms ease-in calc(var(--i) * 40ms);
 }
 
-/* Dealt in: timed with the timeline's reveal, springing past its place. */
+/* Nothing to point at until it is dealt. */
+.hand:not([data-shown]) :is(.front, .back) {
+  pointer-events: none;
+}
+
+/* Dealt in once it scrolls into view: springing past its place. */
 .hand[data-shown] .slot {
+  opacity: 1;
   transform: translateY(0);
-  transition: transform 760ms cubic-bezier(0.3, 1.35, 0.55, 1) calc(var(--deal-delay) + var(--i) * 90ms);
+  transition:
+    transform 760ms cubic-bezier(0.3, 1.35, 0.55, 1) calc(var(--deal-delay) + var(--i) * 90ms),
+    opacity 260ms ease-out calc(var(--deal-delay) + var(--i) * 90ms);
 }
 
 .slot[data-state="raised"] {
@@ -97,27 +114,110 @@
   transform: translateX(var(--x)) translateY(calc(var(--rest-y) - var(--lift))) rotate(0deg);
 }
 
-/* Parted around the raised card, never past the column's edge. */
+/*
+ * Parted around the raised card, never past the column's edge. The tilt swings
+ * a card about a pivot 2.6 card heights below its top, carrying the top
+ * corner out by that much × sin(tilt); the clamp takes that swing off, or the
+ * card would widen the page's scroller.
+ */
+.slot[data-state="left"] {
+  --turn: calc(var(--a) - 2deg);
+}
+
+.slot[data-state="right"] {
+  --turn: calc(var(--a) + 2deg);
+}
+
 .slot[data-state="left"] .pose {
-  transform: translateX(max(calc(var(--x) - var(--part)), -1.5rem)) translateY(calc(var(--rest-y) + 0.75rem))
-    rotate(calc(var(--a) - 2deg));
+  transform: translateX(
+      max(calc(var(--x) - var(--part)), calc(-1.5rem - var(--card-h) * 2.6 * min(sin(var(--turn)), 0)))
+    )
+    translateY(calc(var(--rest-y) + 0.75rem)) rotate(var(--turn));
 }
 
 .slot[data-state="right"] .pose {
-  transform: translateX(min(calc(var(--x) + var(--part)), calc(100cqw - var(--card-w) + 1.5rem)))
-    translateY(calc(var(--rest-y) + 0.75rem)) rotate(calc(var(--a) + 2deg));
+  transform: translateX(
+      min(
+        calc(var(--x) + var(--part)),
+        calc(100cqw - var(--card-w) + 1.5rem - var(--card-h) * 2.6 * max(sin(var(--turn)), 0))
+      )
+    )
+    translateY(calc(var(--rest-y) + 0.75rem)) rotate(var(--turn));
 }
 
 /*
- * Played: centred, just under the timeline, and grown by --grow (up to 1.5×,
- * as much as fits under the graph); the caller measures both. It is there to
- * be read, so it arrives without overshoot and then holds still: no bob, no
- * tilt towards the pointer. It keeps the raised card's styles.
+ * Beside a played card: the cards before it stacked to its left, the ones
+ * after it to its right, each stack tucked up against it with the same
+ * overlap as the hand. When a side is too narrow for that, its cards close up
+ * to --min-step apart from the column's edge, so every one keeps a strip
+ * showing to point at even if the innermost has to slip under the played card.
+ */
+.hand[data-played] .slot {
+  --min-step: 3rem;
+  --beside-gap: 1.5rem;
+  /* How far out a side's innermost card sits from the column's edge. */
+  --room: calc(50cqw - var(--card-w) * var(--grow) / 2 - var(--beside-gap) - var(--card-w));
+  --before: var(--played);
+  --after: calc(var(--n) - var(--played) - 1);
+}
+
+.slot[data-state="before"] {
+  --step: min(var(--spread), max(var(--min-step), calc(var(--room) / max(var(--before) - 1, 1))));
+  --bx: max(
+    calc(var(--i) * var(--min-step) - 1.5rem),
+    calc(var(--room) - (var(--before) - 1 - var(--i)) * var(--step))
+  );
+}
+
+/* Mirrored, stacking left over right, so here too the innermost is on top. */
+.slot[data-state="after"] {
+  --j: calc(var(--i) - var(--played) - 1);
+  --step: min(var(--spread), max(var(--min-step), calc(var(--room) / max(var(--after) - 1, 1))));
+  --bx: min(
+    calc(100cqw - var(--card-w) + 1.5rem - (var(--after) - 1 - var(--j)) * var(--min-step)),
+    calc(100cqw - var(--card-w) - var(--room) + var(--j) * var(--step))
+  );
+
+  z-index: calc(var(--n) - var(--i));
+}
+
+/*
+ * Tilted away from the played card, but about their own centres: the shift
+ * cancels the swing about the far pivot, so a stack stays where --bx put it.
+ */
+.slot[data-state="before"] {
+  --turn: -3deg;
+}
+
+.slot[data-state="after"] {
+  --turn: 3deg;
+}
+
+.slot:is([data-state="before"], [data-state="after"]) .pose {
+  transform: translateX(calc(var(--bx) - var(--card-h) * 2.1 * sin(var(--turn))))
+    translateY(calc(var(--rest-y) + 0.75rem)) rotate(var(--turn));
+}
+
+/* Pointed at: to the front of its stack and lifted, where it already is. */
+.slot[data-lifted] {
+  z-index: 40;
+}
+
+.slot[data-lifted] .pose {
+  transform: translateX(var(--bx)) translateY(calc(var(--rest-y) - var(--lift))) rotate(0deg);
+}
+
+/*
+ * Played: centred at the top of the hand, in front of the rest, and grown by
+ * --grow (up to 1.5×, as much as fits on screen under the graph); the caller
+ * measures it. It is there to be read, so it arrives without overshoot and
+ * then holds still: no bob, no tilt towards the pointer. It keeps the raised
+ * card's styles.
  */
 .slot[data-state="selected"] .pose {
   width: calc(var(--card-w) * var(--grow));
   height: calc(var(--card-h) * var(--grow));
-  transform: translateX(calc(50cqw - var(--card-w) * var(--grow) / 2)) translateY(var(--focus-shift)) rotate(0deg);
+  transform: translateX(calc(50cqw - var(--card-w) * var(--grow) / 2)) translateY(0) rotate(0deg);
   transition:
     transform 560ms cubic-bezier(0.22, 1, 0.36, 1),
     width 560ms cubic-bezier(0.22, 1, 0.36, 1),
@@ -203,6 +303,7 @@
 
 /* Every state still applies; it just arrives without travelling. */
 @media (prefers-reduced-motion: reduce) {
+  .hand,
   .slot,
   .hand[data-shown] .slot,
   .pose,

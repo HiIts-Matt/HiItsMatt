@@ -24,13 +24,11 @@ const HAND_QUERY = "(min-width: 1180px) and (min-height: 760px) and (hover: hove
 const CARD_HEIGHT_REM = 25.2;
 /** The most a played card grows; less when the screen is too short to fit it under the graph. */
 const MAX_GROW = 1.5;
-/** Space between the timeline and a played card, below the card, and above the timeline. */
-const PLAYED_GAP_PX = 20;
+/** Space below a played card, and above the timeline. */
 const PLAYED_MARGIN_PX = 24;
 const TIMELINE_TOP_PX = 16;
-
-/** Keys that scroll the page, and so put a played card back. */
-const SCROLL_KEYS = ["ArrowUp", "ArrowDown", "PageUp", "PageDown", "Home", "End", " "];
+/** How much of the hand has to scroll into view before it is dealt. */
+const DEAL_THRESHOLD = 0.2;
 
 type JobProps = {
   job: CareerJob;
@@ -38,36 +36,65 @@ type JobProps = {
   onscreen: boolean;
   /** Hand of cards (large screens with a mouse), or the grid. */
   hand: boolean;
-  /** This employer is the one on screen: its hand is the one dealt in. */
-  current: boolean;
-  /** The page's scroller: what playing a card scrolls, and what scrolling it puts the card back. */
+  /** The page's scroller: what the hand scrolls into view in, and what playing a card scrolls. */
   scroller: HTMLElement | null;
 };
 
-function Job({ job, generatedAt, onscreen, hand, current, scroller }: JobProps) {
+function Job({ job, generatedAt, onscreen, hand, scroller }: JobProps) {
   // Shared by the timeline rows and the cards: pointing at either lifts both.
   const [active, setActive] = useState<string | null>(null);
   const [selected, setSelected] = useState<string | null>(null);
-  const [play, setPlay] = useState({ shift: 0, grow: 1 });
+  const [grow, setGrow] = useState(1);
+  // The hand has scrolled into view on this visit to the page.
+  const [seen, setSeen] = useState(false);
   const timeline = useRef<HTMLElement>(null);
+  const handBox = useRef<HTMLDivElement>(null);
   const reducedMotion = usePrefersReducedMotion();
   const cards = job.products.filter((product) => product.card);
-  const dealt = hand && onscreen && current;
+  const dealt = hand && onscreen && seen;
 
   /*
-   * Playing a card scrolls the page so the timeline sits just above where the
-   * card will land, then sends the card there, as big as fits beneath it (up
-   * to 1.5×). The timeline is never pushed off the top to make room — it is
-   * what the card is being read against — so a short screen gets a smaller
-   * card instead. Everything is measured after the scroll is clamped to the
-   * page, so a timeline that cannot scroll any higher still gets the card
-   * directly beneath it.
+   * A hand is dealt the first time it scrolls into view, not before — the
+   * ones further down would otherwise be dealt where nobody sees it — and is
+   * gathered up again only once the page has left, to be dealt on the next visit.
+   */
+  useEffect(() => {
+    const node = handBox.current;
+
+    if (!onscreen) {
+      setSeen(false);
+      return;
+    }
+    if (!hand || !node || !scroller) return;
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries.some((entry) => entry.isIntersecting)) {
+          setSeen(true);
+          observer.disconnect();
+        }
+      },
+      { root: scroller, threshold: DEAL_THRESHOLD },
+    );
+
+    observer.observe(node);
+    return () => observer.disconnect();
+  }, [hand, onscreen, scroller]);
+
+  /*
+   * Playing a card scrolls the page so the timeline sits just above the hand,
+   * then grows the card as big as fits on screen beneath it (up to 1.5×). The
+   * timeline is never pushed off the top to make room — it is what the card is
+   * being read against — so a short screen gets a smaller card instead.
+   * Everything is measured after the scroll is clamped to the page, so a hand
+   * that cannot scroll any higher still gets a card that fits under it.
    */
   const select = useCallback(
     (id: string | null) => {
-      const box = timeline.current;
+      const graph = timeline.current;
+      const held = handBox.current;
 
-      if (!id || !box || !scroller) {
+      if (!id || !graph || !held || !scroller) {
         setSelected(null);
         return;
       }
@@ -75,24 +102,21 @@ function Job({ job, generatedAt, onscreen, hand, current, scroller }: JobProps) 
       const rem = Number.parseFloat(getComputedStyle(document.documentElement).fontSize);
       const cardHeight = CARD_HEIGHT_REM * rem;
       const screen = scroller.clientHeight;
-      const rect = box.getBoundingClientRect();
       const top = scroller.getBoundingClientRect().top;
-      const bottom = rect.bottom - top;
-      // As high as the timeline may go, and as high as the full-size card needs it.
-      const highest = TIMELINE_TOP_PX + rect.height;
-      const wantedBottom = Math.max(highest, screen - PLAYED_MARGIN_PX - PLAYED_GAP_PX - cardHeight * MAX_GROW);
+      const graphTop = graph.getBoundingClientRect().top - top;
+      const handTop = held.getBoundingClientRect().top - top;
+      // As high as the hand may go, and as high as the full-size card needs it.
+      const highest = TIMELINE_TOP_PX + handTop - graphTop;
+      const wantedTop = Math.max(highest, screen - PLAYED_MARGIN_PX - cardHeight * MAX_GROW);
       const target = Math.min(
-        Math.max(scroller.scrollTop + bottom - wantedBottom, 0),
+        Math.max(scroller.scrollTop + handTop - wantedTop, 0),
         scroller.scrollHeight - screen,
       );
-      const landedBottom = bottom - (target - scroller.scrollTop);
-      const room = screen - PLAYED_MARGIN_PX - PLAYED_GAP_PX - landedBottom;
-      const grow = Math.min(MAX_GROW, Math.max(1, room / cardHeight));
-      const cardTop = landedBottom + PLAYED_GAP_PX;
+      const landedTop = handTop - (target - scroller.scrollTop);
+      const room = screen - PLAYED_MARGIN_PX - landedTop;
 
       scroller.scrollTo({ top: target, behavior: reducedMotion ? "auto" : "smooth" });
-      // The card's slot sits one card height above the bottom of the screen.
-      setPlay({ shift: Math.round(cardTop - (screen - cardHeight)), grow });
+      setGrow(Math.min(MAX_GROW, Math.max(1, room / cardHeight)));
       setSelected(id);
     },
     [reducedMotion, scroller],
@@ -103,38 +127,28 @@ function Job({ job, generatedAt, onscreen, hand, current, scroller }: JobProps) 
     if (!dealt) setSelected(null);
   }, [dealt]);
 
-  /*
-   * A played card goes back on: Esc, a click anywhere but a card, or any
-   * attempt to scroll. The scroll this component started itself fires no
-   * wheel, touch or key events, so it never closes the card it opened.
-   */
+  // A played card goes back on Esc, or a click anywhere but a card.
   useEffect(() => {
-    if (!selected || !scroller) return;
+    if (!selected) return;
 
-    const close = () => setSelected(null);
     const onKey = (event: KeyboardEvent) => {
-      if (event.key === "Escape") close();
-      else if (SCROLL_KEYS.includes(event.key) && !(event.target as Element | null)?.closest("[data-card-slot]")) close();
+      if (event.key === "Escape") setSelected(null);
     };
     const onPointerDown = (event: PointerEvent) => {
-      if (!(event.target as Element | null)?.closest("[data-card-slot]")) close();
+      if (!(event.target as Element | null)?.closest("[data-card-slot]")) setSelected(null);
     };
 
     window.addEventListener("keydown", onKey);
     window.addEventListener("pointerdown", onPointerDown);
-    scroller.addEventListener("wheel", close, { passive: true });
-    scroller.addEventListener("touchmove", close, { passive: true });
 
     return () => {
       window.removeEventListener("keydown", onKey);
       window.removeEventListener("pointerdown", onPointerDown);
-      scroller.removeEventListener("wheel", close);
-      scroller.removeEventListener("touchmove", close);
     };
-  }, [selected, scroller]);
+  }, [selected]);
 
   return (
-    <article className={styles.job} data-hand={hand && cards.length > 0 ? "true" : undefined} data-job="">
+    <article className={styles.job}>
       <header className={styles.jobHead}>
         <div className={styles.jobTitleRow}>
           <h3 className={styles.company}>
@@ -174,8 +188,7 @@ function Job({ job, generatedAt, onscreen, hand, current, scroller }: JobProps) 
           />
           <p className={styles.footnote}>
             Weekly commits from git history
-            {generatedAt ? `, updated ${dateStamp.format(new Date(generatedAt))}` : ""}. Four quiet weeks end a
-            period; heavier stretches of work land harder.
+            {generatedAt ? `, updated ${dateStamp.format(new Date(generatedAt))}` : ""}
           </p>
         </section>
       )}
@@ -183,12 +196,13 @@ function Job({ job, generatedAt, onscreen, hand, current, scroller }: JobProps) 
       {cards.length > 0 &&
         (hand ? (
           <CardHand
+            ref={handBox}
             label={job.company}
             products={cards}
             shown={dealt}
             active={active}
             selected={selected}
-            play={play}
+            grow={grow}
             onActive={setActive}
             onSelect={select}
           />
@@ -213,17 +227,17 @@ function Job({ job, generatedAt, onscreen, hand, current, scroller }: JobProps) 
 }
 
 /**
- * Work, as opposed to the GitHub pages after it: everything here — every
- * employer, its products, their logos and the activity behind the timeline —
- * comes from the data store, so all of it changes with a push, not a deploy.
+ * Work, as opposed to the GitHub pages either side of it: everything here —
+ * every employer, its products, their logos and the activity behind the
+ * timeline — comes from the data store, so all of it changes with a push, not
+ * a deploy.
  *
  * `onscreen` is true from the moment the page starts arriving until it has
  * fully left: the timeline replays its reveal on every visit, and resets only
  * once nobody can see it happen.
  *
- * On large screens each employer takes a screen of its own, and its products
- * are a hand of cards held along the bottom edge. Scrolling from one employer
- * to the next drops one hand and deals the other.
+ * On large screens each employer's products are a hand of cards under its
+ * timeline, dealt as it scrolls into view.
  */
 export function Career({ onscreen }: { onscreen: boolean }) {
   const career = useResource("career", () => unwrap(api.career.$get(), "Could not load career details"));
@@ -231,30 +245,6 @@ export function Career({ onscreen }: { onscreen: boolean }) {
   // The page's own scroller, not the document: the Section this page renders in.
   const [scroller, setScroller] = useState<HTMLElement | null>(null);
   const layout = useCallback((node: HTMLDivElement | null) => setScroller(node?.closest("section") ?? null), []);
-  const [current, setCurrent] = useState(0);
-  const jobCount = career.status === "ready" ? career.data.jobs.length : 0;
-
-  /*
-   * Which employer is on screen: the one crossing a line 40% of the way down
-   * the page. Between two (in the gap) the last one keeps its hand.
-   */
-  useEffect(() => {
-    const root = scroller;
-    if (!hand || !root || jobCount < 2) return;
-
-    const jobs = [...root.querySelectorAll<HTMLElement>("[data-job]")];
-    const observer = new IntersectionObserver(
-      (entries) => {
-        for (const entry of entries) {
-          if (entry.isIntersecting) setCurrent(jobs.indexOf(entry.target as HTMLElement));
-        }
-      },
-      { root, rootMargin: "-40% 0px -60% 0px" },
-    );
-
-    for (const job of jobs) observer.observe(job);
-    return () => observer.disconnect();
-  }, [hand, jobCount, scroller]);
 
   return (
     <div ref={layout} className={styles.layout}>
@@ -270,14 +260,13 @@ export function Career({ onscreen }: { onscreen: boolean }) {
       )}
 
       {career.status === "ready" &&
-        career.data.jobs.map((job, index) => (
+        career.data.jobs.map((job) => (
           <Job
             key={`${job.company}-${job.start}`}
             job={job}
             generatedAt={career.data.activityGeneratedAt}
             onscreen={onscreen}
             hand={hand}
-            current={index === current}
             scroller={scroller}
           />
         ))}

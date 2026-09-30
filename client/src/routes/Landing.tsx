@@ -14,7 +14,7 @@ import { Projects, useProjects } from "../sections/Projects";
 import { SECTIONS, SECTION_IDS } from "../sections/sections";
 import styles from "./Landing.module.css";
 
-const [intro, career, overview, projects] = SECTIONS;
+const [intro, overview, career, projects] = SECTIONS;
 
 /** Below this the curtain feels like a flash rather than a transition. */
 const MIN_CURTAIN_MS = 650;
@@ -242,22 +242,13 @@ export function Landing() {
             centered
             backdrop={<IntroBackdrop onReady={handleBackdropReady} />}
           >
-            <Intro revealed={phase === "ready"} onAdvance={() => goTo(career.id)} />
+            <Intro revealed={phase === "ready"} onAdvance={() => goTo(overview.id)} />
           </Section>
 
-          {/* The rest run past one screen: the career page carries its timeline
-              and a card per product, the overview the repo belt under the
-              profile, and the projects page grows with each published case.
+          {/* The rest run past one screen: the overview carries the repo belt
+              under the profile, the career page its timeline and a card per
+              product, and the projects page grows with each published case.
               Each scrolls inside its own page. */}
-          <Section
-            id={career.id}
-            label={career.label}
-            role={pager.roleOf(career.id)}
-            direction={pager.direction}
-          >
-            <Career onscreen={pager.roleOf(career.id) !== "hidden"} />
-          </Section>
-
           <Section
             id={overview.id}
             label={overview.label}
@@ -265,6 +256,15 @@ export function Landing() {
             direction={pager.direction}
           >
             <Overview />
+          </Section>
+
+          <Section
+            id={career.id}
+            label={career.label}
+            role={pager.roleOf(career.id)}
+            direction={pager.direction}
+          >
+            <Career onscreen={pager.roleOf(career.id) !== "hidden"} />
           </Section>
 
           <Section

@@ -1,9 +1,9 @@
 /*
  * Same measure and surfaces as the overview and projects pages. Per employer:
- * a compact header, the timeline card, then a grid of product cards built to
- * the Personal Work card's dimensions. A product's colour is its own
- * `--accent`, set inline from the data store, and appears only where it
- * identifies that product.
+ * a compact header, the timeline card, then its products — a hand of cards on
+ * large screens (CardHand), elsewhere a grid of cards built to the Personal
+ * Work card's dimensions. A product's colour is its own `--accent`, set inline
+ * from the data store, and appears only where it identifies that product.
  */
 .layout {
   display: grid;
@@ -19,21 +19,6 @@
   align-content: start;
   /* The grid below asks how wide the job is, not the window. */
   container-type: inline-size;
-}
-
-/*
- * Hand of cards: the cards are held along the bottom edge of the page, over
- * whatever is scrolled there, and employers follow each other directly — the
- * hand swaps as the next one scrolls up. The bottom padding lets the end of a
- * timeline scroll clear of the cards.
- *
- * --hand-peek mirrors the hand's `--peek` (CardHand.module.css): how much of
- * the cards shows above the bottom of the screen.
- */
-.job[data-hand] {
-  --hand-peek: calc(25.2rem - 3rem);
-
-  padding-block-end: calc(var(--hand-peek) + 1.5rem);
 }
 
 /* ------------------------------------------------------------------ header */

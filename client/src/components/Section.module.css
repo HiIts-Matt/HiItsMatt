@@ -60,9 +60,20 @@
  * The intro's backdrop is outside the scroller and so keeps its full colour:
  * it is background, and it is never the page held underneath anyway.
  */
-.page[data-role="leaving"] :is(.scroller, .layer),
-.page[data-role="entering"] :is(.scroller, .layer) {
+.page[data-role="leaving"] .scroller,
+.page[data-role="entering"] .scroller {
   will-change: filter;
+}
+
+/*
+ * Neither page scrolls until the handover is over: the tail of the gesture
+ * that turned the page (a flick's momentum, a held key) would otherwise start
+ * reading down the arriving page before it has even settled. `hidden` still
+ * allows the scroll the pager sets itself, and keeps each page's position.
+ */
+.page[data-role="leaving"] .scroller,
+.page[data-role="entering"] .scroller {
+  overflow-y: hidden;
 }
 
 /*
@@ -81,7 +92,7 @@
   animation: expand var(--page-settle) var(--page-ease-settle) var(--page-slide) both;
 }
 
-.page[data-direction="down"][data-role="entering"] :is(.scroller, .layer) {
+.page[data-direction="down"][data-role="entering"] .scroller {
   animation: undim var(--page-settle) var(--page-ease-settle) var(--page-slide) both;
 }
 
@@ -102,7 +113,7 @@
   animation: shrink var(--page-settle) var(--page-ease-settle) both;
 }
 
-.page[data-direction="up"][data-role="leaving"] :is(.scroller, .layer) {
+.page[data-direction="up"][data-role="leaving"] .scroller {
   animation: dim var(--page-settle) var(--page-ease-settle) both;
 }
 
@@ -191,6 +202,8 @@
   overscroll-behavior-y: contain;
   scrollbar-width: thin;
   scrollbar-color: var(--c-border-strong) transparent;
+  /* The scrollbar goes during a handover; the content must not reflow when it does. */
+  scrollbar-gutter: stable;
   padding: clamp(4rem, 12vh, 7rem) var(--gutter);
   /* Keep content clear of the floating nav rail on the left. */
   padding-inline-start: calc(var(--gutter) + var(--nav-width));
@@ -207,23 +220,6 @@
 }
 
 /*
- * Content pinned to the screen rather than scrolled: above the scroller, the
- * size of the page, clipped to it. Pages render into it through `usePageLayer`
- * (see Section.tsx). It lets nothing through by itself — whatever is portalled
- * in opts back into pointer events — so the scroller underneath keeps working.
- *
- * It moves and dims with the page during a handover, because it is part of
- * the page, not a fixed layer over the stage.
- */
-.layer {
-  position: absolute;
-  inset: 0;
-  z-index: 2;
-  overflow: clip;
-  pointer-events: none;
-}
-
-/*
  * The nav rail floats over the page rather than occupying a column, so a
  * centred section reclaims the reserved gutter to stay optically centred in the
  * viewport.
@@ -231,6 +227,8 @@
 .centered {
   padding-block: clamp(2.5rem, 7vh, 5rem);
   padding-inline-start: var(--gutter);
+  /* Reserved on both sides, so the gutter does not pull the content off centre. */
+  scrollbar-gutter: stable both-edges;
   align-items: center;
   text-align: center;
 }

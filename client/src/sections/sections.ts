@@ -14,6 +14,16 @@ export type SectionId = (typeof SECTIONS)[number]["id"];
 
 export const SECTION_IDS: readonly SectionId[] = SECTIONS.map((section) => section.id);
 
+/** A page's own URL: the intro is the site root, every other page its id. */
+export function pagePath(id: string): string {
+  return id === "intro" ? "/" : `/${id}`;
+}
+
+/** A project's own page, dealt over the projects page. */
+export function projectPath(slug: string): string {
+  return `/projects/${encodeURIComponent(slug)}`;
+}
+
 export type SectionMeta = {
   readonly id: SectionId;
   readonly label: string;

@@ -6,6 +6,7 @@ import { useResource, type Resource } from "../hooks/useResource";
 import { api, apiUrl, unwrap } from "../lib/api";
 import { cx } from "../lib/cx";
 import styles from "./Projects.module.css";
+import { projectPath } from "./sections";
 
 /**
  * A still, even for clips: a grid of autoplaying videos is a lot of bytes for a
@@ -64,7 +65,7 @@ function ProjectCard({ project, onOpen }: { project: Project; onOpen: OpenProjec
           <h3 className={styles.title}>
             <a
               className={styles.open}
-              href={`#project/${project.slug}`}
+              href={projectPath(project.slug)}
               onClick={(event) => {
                 // Modified clicks belong to the browser: a project page is a
                 // real URL, so opening one in a new tab has to keep working.

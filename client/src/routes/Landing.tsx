@@ -1,4 +1,5 @@
-import { type CSSProperties, useCallback, useEffect, useRef, useState } from "react";
+import { type CSSProperties, useCallback, useEffect, useEffectEvent, useRef, useState } from "react";
+import { useNavigate } from "react-router";
 
 import { Loader } from "../components/Loader";
 import { Section } from "../components/Section";
@@ -11,7 +12,7 @@ import { IntroBackdrop } from "../sections/IntroBackdrop";
 import { Overview } from "../sections/Overview";
 import { ProjectArticle } from "../sections/ProjectArticle";
 import { Projects, useProjects } from "../sections/Projects";
-import { SECTIONS, SECTION_IDS } from "../sections/sections";
+import { SECTIONS, SECTION_IDS, pagePath, projectPath } from "../sections/sections";
 import styles from "./Landing.module.css";
 
 const [intro, overview, career, projects] = SECTIONS;
@@ -23,17 +24,21 @@ const MAX_CURTAIN_MS = 5000;
 /** Backstop in case `transitionend` never arrives (background tab, no compositor). */
 const SLIDE_TIMEOUT_MS = 1200;
 
-/** A project's own page: `#project/<slug>`, always dealt over the projects page. */
-const PROJECT_HASH = /^#project\/(.+)$/;
+/** A project's own page: `/projects/<slug>`, always dealt over the projects page. */
+const PROJECT_PATH = /^\/projects\/([^/]+)\/?$/;
 
 type Route = { pageId: string; slug: string | null };
 
 function readRoute(): Route {
-  const match = PROJECT_HASH.exec(window.location.hash);
+  const { pathname, hash } = window.location;
+  // Links shared before pages had paths — `/#career`, `/#project/<slug>` —
+  // still land where they pointed; the URL is rewritten to the path on arrival.
+  const path = pathname === "/" && hash.length > 1 ? `/${hash.slice(1).replace(/^project\//, "projects/")}` : pathname;
+  const project = PROJECT_PATH.exec(path);
 
-  return match
-    ? { pageId: projects.id, slug: decodeURIComponent(match[1] ?? "") }
-    : { pageId: window.location.hash.slice(1), slug: null };
+  return project
+    ? { pageId: projects.id, slug: decodeURIComponent(project[1] ?? "") }
+    : { pageId: path.replace(/^\/|\/$/g, "") || intro.id, slug: null };
 }
 
 /**
@@ -47,13 +52,12 @@ type Phase = "loading" | "revealing" | "ready";
 
 export function Landing() {
   const prefersReducedMotion = usePrefersReducedMotion();
+  const navigate = useNavigate();
   const start = useRef(readRoute());
 
   // A deep link means the visitor asked for a specific page, so the intro
   // curtain would only be in the way.
-  const [phase, setPhase] = useState<Phase>(() =>
-    window.location.hash.slice(1) ? "ready" : "loading",
-  );
+  const [phase, setPhase] = useState<Phase>(() => (start.current.pageId !== intro.id ? "ready" : "loading"));
   const mountedAt = useRef(Date.now());
 
   const [detail, setDetail] = useState<Detail | null>(() =>
@@ -63,7 +67,7 @@ export function Landing() {
 
   /*
    * The list belongs to the route rather than to the projects page: a link
-   * straight to `#project/<slug>` has to resolve that project before its card
+   * straight to `/projects/<slug>` has to resolve that project before its card
    * has ever been rendered, and both readers of the list share this one fetch.
    */
   const projectList = useProjects();
@@ -113,11 +117,14 @@ export function Landing() {
    */
   const pushed = useRef(false);
 
-  const openProject = useCallback((slug: string) => {
-    window.history.pushState(null, "", `#project/${encodeURIComponent(slug)}`);
-    pushed.current = true;
-    setDetail({ slug, open: true });
-  }, []);
+  const openProject = useCallback(
+    (slug: string) => {
+      navigate(projectPath(slug));
+      pushed.current = true;
+      setDetail({ slug, open: true });
+    },
+    [navigate],
+  );
 
   const closeProject = useCallback(() => {
     if (pushed.current) {
@@ -160,18 +167,27 @@ export function Landing() {
   }, [detail, prefersReducedMotion]);
 
   /*
-   * The hash is the only scroll position left to restore: a reload, or a link
-   * shared from here, should come back to the page it was taken from. While a
-   * project page is up the URL is that page's, and the entry it pushed is not
-   * one to overwrite.
+   * The URL follows the page, so a reload or a link shared from here comes
+   * back to it. Changing page replaces the entry rather than pushing one:
+   * Back leaves the site, as it did before pages had paths. While a project
+   * page is up the URL is that project's — pushed when it was opened, or
+   * rewritten here from an old `#project/` link.
+   *
+   * Driven by the page and project only, never by the URL itself: Back
+   * changes the URL before the project it left has closed, and syncing on
+   * that would write the project's URL straight back over it.
    */
-  useEffect(() => {
-    if (open) return;
+  const slug = detail?.open ? detail.slug : null;
+  const syncUrl = useEffectEvent((target: string) => {
+    const { pathname, search, hash } = window.location;
+    if (pathname === target && !hash) return;
 
-    const { pathname, search } = window.location;
-    const hash = activeId === intro.id ? "" : `#${activeId}`;
-    window.history.replaceState(null, "", `${pathname}${search}${hash}`);
-  }, [open, activeId]);
+    navigate({ pathname: target, search }, { replace: true });
+  });
+
+  useEffect(() => {
+    syncUrl(slug ? projectPath(slug) : pagePath(activeId));
+  }, [slug, activeId]);
 
   /*
    * Focus follows the sub-page out. The article takes focus for itself when it

@@ -1,5 +1,5 @@
 /*
- * A grid of cards on the overview's measure, not a full-bleed stack: this page
+ * A grid of cards on the site's shared measure, not a full-bleed stack: this page
  * scrolls inside itself (see Section.module.css), so the grid grows a row at a
  * time instead of compressing the published projects into one screen.
  */

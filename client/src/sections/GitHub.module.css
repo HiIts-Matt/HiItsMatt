@@ -1,0 +1,213 @@
+/*
+ * This page runs past one screen and scrolls inside itself (see
+ * Section.module.css): the profile grid fills the first viewport and the repo
+ * belt sits directly below it, so the layout no longer has to shrink itself to
+ * fit.
+ *
+ * One measure for the whole page — profile grid, belt and carousel alike —
+ * matching the projects grid before it.
+ */
+.layout {
+  display: grid;
+  gap: clamp(1.75rem, 5vh, 3.5rem);
+  width: min(100%, 1320px);
+  margin-inline: auto;
+  min-height: 0;
+}
+
+.columns {
+  display: grid;
+  grid-template-columns: minmax(0, 0.85fr) minmax(0, 1.15fr);
+  gap: clamp(1rem, 2vw, 1.75rem);
+  align-items: start;
+  min-height: 0;
+}
+
+.card {
+  display: grid;
+  gap: 1.15rem;
+  padding: clamp(1.15rem, 2.2vw, 1.85rem);
+  border: 1px solid var(--c-border);
+  border-radius: var(--radius);
+  background: var(--c-surface);
+}
+
+.stack {
+  display: grid;
+  gap: clamp(1rem, 2vw, 1.75rem);
+  min-height: 0;
+}
+
+.identity {
+  display: flex;
+  align-items: center;
+  gap: 1.15rem;
+}
+
+.avatar {
+  width: 96px;
+  height: 96px;
+  flex: none;
+  border-radius: 50%;
+  border: 1px solid var(--c-border-strong);
+  background: var(--c-ink-raised);
+  object-fit: cover;
+}
+
+.name {
+  font-size: 1.9rem;
+  line-height: 1.1;
+}
+
+.login {
+  font-family: var(--font-mono);
+  font-size: 0.85rem;
+  color: var(--c-muted);
+}
+
+.bio {
+  color: var(--c-muted);
+  font-size: 1.02rem;
+  text-wrap: pretty;
+}
+
+.meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+}
+
+.chip {
+  padding: 0.25rem 0.7rem;
+  border: 1px solid var(--c-border);
+  border-radius: 999px;
+  font-size: 0.78rem;
+  color: var(--c-muted);
+}
+
+.stats {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.75rem;
+  padding-block-start: 0.5rem;
+  border-block-start: 1px solid var(--c-border);
+}
+
+.stat {
+  display: grid;
+  gap: 0.1rem;
+}
+
+.statValue {
+  font-family: var(--font-display);
+  font-size: 1.8rem;
+  font-variation-settings: "opsz" 24;
+  font-variant-numeric: tabular-nums;
+}
+
+.statLabel {
+  font-size: 0.7rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--c-faint);
+}
+
+.profileLink {
+  justify-self: start;
+  padding: 0.45rem 1rem;
+  border: 1px solid var(--c-border-strong);
+  border-radius: 999px;
+  font-size: 0.82rem;
+  color: var(--c-muted);
+  transition:
+    color 200ms ease,
+    border-color 200ms ease,
+    background 200ms ease;
+}
+
+.profileLink:hover {
+  color: var(--c-text);
+  border-color: var(--c-border-strong);
+  background: var(--c-surface-hover);
+}
+
+.cardTitle {
+  font-family: var(--font-body);
+  font-size: 0.72rem;
+  font-weight: 600;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--c-faint);
+}
+
+.skeleton {
+  height: 0.85rem;
+  border-radius: 999px;
+  background: linear-gradient(
+    90deg,
+    rgb(255 255 255 / 5%),
+    rgb(255 255 255 / 11%),
+    rgb(255 255 255 / 5%)
+  );
+  background-size: 220% 100%;
+  animation: shimmer 1.4s linear infinite;
+}
+
+@keyframes shimmer {
+  to {
+    background-position: -220% 0;
+  }
+}
+
+.notice {
+  font-size: 0.82rem;
+  color: var(--c-muted);
+  border-inline-start: 2px solid var(--c-pink);
+  padding-inline-start: 0.7rem;
+  text-wrap: pretty;
+}
+
+@media (max-width: 900px) {
+  .columns {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+@media (max-width: 640px) {
+  .layout {
+    gap: 1.5rem;
+  }
+
+  .columns,
+  .stack {
+    gap: 0.9rem;
+  }
+
+  .card {
+    gap: 0.8rem;
+    padding: 1rem;
+  }
+
+  .avatar {
+    width: 64px;
+    height: 64px;
+  }
+
+  .name {
+    font-size: 1.4rem;
+  }
+
+  .bio {
+    font-size: 0.94rem;
+    line-height: 1.5;
+  }
+
+  .statValue {
+    font-size: 1.35rem;
+  }
+
+  .profileLink {
+    padding: 0.35rem 0.85rem;
+    font-size: 0.78rem;
+  }
+}

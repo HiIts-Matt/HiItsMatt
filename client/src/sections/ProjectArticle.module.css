@@ -377,7 +377,7 @@
 
 @media (max-width: 640px) {
   .scroller {
-    /* Clear of the nav bar that sits on the bottom edge on phones. */
-    padding-block-end: calc(var(--gutter) + 3.5rem);
+    /* Clear of the nav pill along the bottom edge on phones (SideNav.module.css). */
+    padding-block-end: calc(var(--gutter) + 4rem + env(safe-area-inset-bottom));
   }
 }

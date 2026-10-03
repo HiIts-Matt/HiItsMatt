@@ -1,154 +1,335 @@
 /*
- * This page runs past one screen and scrolls inside itself (see
- * Section.module.css): the profile grid fills the first viewport and the repo
- * belt sits directly below it, so the layout no longer has to shrink itself to
- * fit.
- *
- * One measure for the whole page — profile grid, belt and carousel alike —
- * matching the projects grid below it.
+ * The homepage: one screen on a laptop. Who I am and how to reach me, then
+ * three large cards into the pages behind it, on the same measure and surfaces
+ * as every other page, and handled like the career page's hand of cards.
  */
 .layout {
   display: grid;
-  gap: clamp(1.75rem, 5vh, 3.5rem);
+  gap: clamp(1.25rem, 3vh, 2.25rem);
   width: min(100%, 1320px);
   margin-inline: auto;
   min-height: 0;
 }
 
-.columns {
+/* ------------------------------------------------------------------ about */
+
+.about {
   display: grid;
-  grid-template-columns: minmax(0, 0.85fr) minmax(0, 1.15fr);
-  gap: clamp(1rem, 2vw, 1.75rem);
-  align-items: start;
-  min-height: 0;
+  gap: 0.85rem;
 }
 
-.card {
-  display: grid;
-  gap: 1.15rem;
-  padding: clamp(1.15rem, 2.2vw, 1.85rem);
-  border: 1px solid var(--c-border);
-  border-radius: var(--radius);
-  background: var(--c-surface);
-}
-
-.stack {
-  display: grid;
-  gap: clamp(1rem, 2vw, 1.75rem);
-  min-height: 0;
-}
-
-.identity {
-  display: flex;
-  align-items: center;
-  gap: 1.15rem;
-}
-
-.avatar {
-  width: 96px;
-  height: 96px;
-  flex: none;
-  border-radius: 50%;
-  border: 1px solid var(--c-border-strong);
-  background: var(--c-ink-raised);
-  object-fit: cover;
-}
-
-.name {
-  font-size: 1.9rem;
-  line-height: 1.1;
-}
-
-.login {
-  font-family: var(--font-mono);
-  font-size: 0.85rem;
+/* The career page's employer summary: same size, colour and measure. */
+.summary {
   color: var(--c-muted);
-}
-
-.bio {
-  color: var(--c-muted);
-  font-size: 1.02rem;
+  font-size: 0.94rem;
+  line-height: 1.6;
   text-wrap: pretty;
 }
 
-.meta {
+/* The ways to reach me, then where and when I am: one row, one glance. */
+.details {
   display: flex;
   flex-wrap: wrap;
-  gap: 0.4rem;
+  align-items: center;
+  gap: 0.6rem;
 }
 
-.chip {
-  padding: 0.25rem 0.7rem;
+.primary,
+.secondary {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.65rem 1.2rem;
+  border: 1px solid transparent;
+  border-radius: 10px;
+  font-size: 0.88rem;
+  font-weight: 500;
+  transition:
+    color 200ms ease,
+    border-color 200ms ease,
+    background 200ms ease,
+    box-shadow 200ms ease,
+    translate 460ms cubic-bezier(0.34, 1.4, 0.64, 1);
+}
+
+/*
+ * Tinted in the gradient's own pink: the one thing on the page that asks for a
+ * reply, lit from the palette rather than solid white, which would outshine
+ * the page's heading.
+ */
+.primary {
+  color: var(--c-text);
+  border-color: color-mix(in srgb, var(--c-pink) 45%, transparent);
+  background: color-mix(in srgb, var(--c-pink) 14%, transparent);
+}
+
+.primary:hover {
+  border-color: color-mix(in srgb, var(--c-pink) 70%, transparent);
+  background: color-mix(in srgb, var(--c-pink) 22%, transparent);
+  box-shadow: 0 10px 28px -12px color-mix(in srgb, var(--c-pink) 60%, transparent);
+}
+
+.secondary {
+  color: var(--c-text);
+  border-color: var(--c-border-strong);
+  background: var(--c-surface);
+}
+
+.secondary:hover {
+  border-color: var(--c-muted);
+  background: var(--c-surface-hover);
+}
+
+.primary:hover,
+.secondary:hover {
+  translate: 0 -2px;
+}
+
+/* Pressed: back down, without the spring. */
+.primary:active,
+.secondary:active {
+  translate: 0 0;
+  transition-duration: 200ms, 200ms, 200ms, 200ms, 80ms;
+}
+
+/* A block, not a flex box: flex would trim the space before the time. */
+.place {
+  display: inline-block;
+  padding: 0.25rem 0.75rem;
+  margin-inline-start: 0.35rem;
   border: 1px solid var(--c-border);
   border-radius: 999px;
   font-size: 0.78rem;
   color: var(--c-muted);
-}
-
-.stats {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 0.75rem;
-  padding-block-start: 0.5rem;
-  border-block-start: 1px solid var(--c-border);
-}
-
-.stat {
-  display: grid;
-  gap: 0.1rem;
-}
-
-.statValue {
-  font-family: var(--font-display);
-  font-size: 1.8rem;
-  font-variation-settings: "opsz" 24;
   font-variant-numeric: tabular-nums;
 }
 
-.statLabel {
-  font-size: 0.7rem;
-  letter-spacing: 0.14em;
-  text-transform: uppercase;
-  color: var(--c-faint);
+/* ------------------------------------------------------------------ entry cards */
+
+/* A titled block of the page, as each employer is on the career page. */
+.group {
+  display: grid;
+  gap: clamp(1rem, 2vw, 1.5rem);
+  align-content: start;
 }
 
-.profileLink {
-  justify-self: start;
-  padding: 0.45rem 1rem;
-  border: 1px solid var(--c-border-strong);
-  border-radius: 999px;
-  font-size: 0.82rem;
-  color: var(--c-muted);
+.groupTitle {
+  font-size: clamp(1.7rem, 2.6vw, 2.25rem);
+  font-variation-settings: "opsz" 48;
+  letter-spacing: -0.02em;
+}
+
+.entries {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: clamp(1rem, 2vw, 1.5rem);
+}
+
+/*
+ * Out of the row until it is first seen: dropped and faded, the last card
+ * leaving last. The same curves and stagger as the career page's hand.
+ */
+.slot {
+  display: grid;
+  min-width: 0;
+  opacity: 0;
+  transform: translateY(4rem);
   transition:
-    color 200ms ease,
-    border-color 200ms ease,
-    background 200ms ease;
+    transform 420ms cubic-bezier(0.55, 0, 0.8, 0.2) calc(var(--i) * 40ms),
+    opacity 300ms ease-in calc(var(--i) * 40ms);
 }
 
-.profileLink:hover {
-  color: var(--c-text);
+/* Dealt in: springing past its place, left to right. */
+.entries[data-dealt] .slot {
+  opacity: 1;
+  transform: translateY(0);
+  transition:
+    transform 760ms cubic-bezier(0.3, 1.35, 0.55, 1) calc(var(--deal-delay) + var(--i) * 90ms),
+    opacity 260ms ease-out calc(var(--deal-delay) + var(--i) * 90ms);
+}
+
+/* Nothing to point at until it is dealt. */
+.entries:not([data-dealt]) .entry {
+  pointer-events: none;
+}
+
+/*
+ * Rows: index, title, a glimpse of the page that takes up the slack, and the
+ * foot. The glimpse sits at the bottom of its row so every card's foot lines up.
+ *
+ * The lift is `translate` and the lean towards the pointer is `transform`, so
+ * each runs on its own curve: the lift springs, the lean follows the pointer.
+ */
+.entry {
+  display: grid;
+  grid-template-rows: auto auto 1fr auto;
+  gap: 0.7rem;
+  padding: clamp(1rem, 1.8vw, 1.5rem);
+  border: 1px solid var(--c-border);
+  border-radius: var(--radius);
+  background: var(--c-surface);
+  box-shadow: 0 18px 40px -18px rgb(0 0 0 / 75%);
+  transform: perspective(1100px) rotateX(var(--rx, 0deg)) rotateY(var(--ry, 0deg));
+  transition:
+    border-color 200ms ease,
+    background 200ms ease,
+    box-shadow 460ms cubic-bezier(0.22, 1, 0.36, 1),
+    translate 460ms cubic-bezier(0.34, 1.4, 0.64, 1),
+    transform 220ms ease-out;
+}
+
+.entry:hover,
+.entry:focus-visible {
   border-color: var(--c-border-strong);
   background: var(--c-surface-hover);
+  box-shadow: 0 30px 56px -22px rgb(0 0 0 / 85%);
+  translate: 0 -0.45rem;
 }
 
-.cardTitle {
-  font-family: var(--font-body);
-  font-size: 0.72rem;
-  font-weight: 600;
-  letter-spacing: 0.2em;
+/* Only a mouse leans it: a finger would leave it tilted where it lifted off. */
+@media not ((hover: hover) and (pointer: fine)) {
+  .entry {
+    transform: none;
+  }
+}
+
+.entryIndex {
+  font-family: var(--font-mono);
+  font-size: 0.68rem;
+  letter-spacing: 0.22em;
   text-transform: uppercase;
   color: var(--c-faint);
+}
+
+.entryTitle {
+  font-family: var(--font-display);
+  font-size: clamp(1.6rem, 2.4vw, 2.15rem);
+  font-variation-settings: "opsz" 48;
+  letter-spacing: -0.02em;
+  line-height: 1.1;
+}
+
+.glimpse {
+  display: grid;
+  align-content: end;
+  gap: 0.35rem;
+  min-width: 0;
+}
+
+.entryMeta {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding-block-start: 0.7rem;
+  border-block-start: 1px solid var(--c-border);
+  font-size: 0.8rem;
+  color: var(--c-muted);
+}
+
+.arrow {
+  font-size: 1rem;
+  transition: translate 460ms cubic-bezier(0.34, 1.4, 0.64, 1);
+}
+
+.entry:hover .arrow,
+.entry:focus-visible .arrow {
+  translate: 0.3rem 0;
+}
+
+.line {
+  font-size: 0.86rem;
+  color: var(--c-muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.lineStrong {
+  font-size: 1rem;
+}
+
+/* Professional work: each product's logo on its own colour, as on its card. */
+.logos {
+  display: flex;
+  gap: 0.45rem;
+  margin-block-start: 0.35rem;
+}
+
+.logo {
+  display: grid;
+  place-items: center;
+  width: 2.5rem;
+  height: 2.5rem;
+  border: 1px solid color-mix(in srgb, var(--accent) 35%, transparent);
+  border-radius: 10px;
+  background:
+    radial-gradient(120% 90% at 50% 115%, color-mix(in srgb, var(--accent) 22%, transparent), transparent 70%),
+    var(--c-ink-raised);
+  transition:
+    translate 460ms cubic-bezier(0.34, 1.4, 0.64, 1) calc(var(--i) * 40ms),
+    border-color 200ms ease;
+}
+
+/* Raised one after another, the way the hand parts around a pointed-at card. */
+.entry:hover .logo,
+.entry:focus-visible .logo {
+  translate: 0 -0.3rem;
+  border-color: color-mix(in srgb, var(--accent) 60%, transparent);
+}
+
+.logo img {
+  max-width: 72%;
+  max-height: 60%;
+  object-fit: contain;
+}
+
+.initials {
+  font-family: var(--font-display);
+  font-size: 0.9rem;
+  letter-spacing: 0.06em;
+  color: var(--accent);
+}
+
+/* Personal projects: the covers fanned a little, the way the hand is. */
+.covers {
+  position: relative;
+  height: 4.8rem;
+  margin-block-end: 0.35rem;
+}
+
+.cover {
+  position: absolute;
+  inset-block-end: 0;
+  inset-inline-start: calc(var(--i) * 4.2rem);
+  width: 8.5rem;
+  aspect-ratio: 16 / 9;
+  border: 1px solid var(--c-border-strong);
+  border-radius: 8px;
+  object-fit: cover;
+  background: var(--c-ink-raised);
+  box-shadow: 0 10px 24px -12px rgb(0 0 0 / 80%);
+  rotate: calc((var(--i) - 1) * 4deg);
+  transition: translate 460ms cubic-bezier(0.34, 1.4, 0.64, 1);
+}
+
+.entry:hover .cover,
+.entry:focus-visible .cover {
+  translate: calc((var(--i) - 1) * 0.9rem) -0.35rem;
+}
+
+/* GitHub: one live number. */
+.figure {
+  font-family: var(--font-display);
+  font-size: clamp(2.2rem, 3.4vw, 3rem);
+  font-variation-settings: "opsz" 48;
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
 }
 
 .skeleton {
+  width: 70%;
   height: 0.85rem;
   border-radius: 999px;
-  background: linear-gradient(
-    90deg,
-    rgb(255 255 255 / 5%),
-    rgb(255 255 255 / 11%),
-    rgb(255 255 255 / 5%)
-  );
+  background: linear-gradient(90deg, rgb(255 255 255 / 5%), rgb(255 255 255 / 11%), rgb(255 255 255 / 5%));
   background-size: 220% 100%;
   animation: shimmer 1.4s linear infinite;
 }
@@ -159,55 +340,160 @@
   }
 }
 
-.notice {
-  font-size: 0.82rem;
+/* ------------------------------------------------------------------ contact */
+
+/*
+ * Not a card: the cards above are links, and this is a form. No surface, border
+ * or shadow of its own, only the fields, across the full measure: name and
+ * email stacked on the left, the message filling the height beside them.
+ */
+.form {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 2fr);
+  gap: 1rem clamp(1rem, 2vw, 1.5rem);
+}
+
+.field {
+  display: grid;
+  align-content: start;
+  gap: 0.4rem;
+  min-width: 0;
+}
+
+/*
+ * Placed explicitly, so name and email fall into the column beside it; its
+ * textarea takes whatever height the two of them add up to.
+ */
+.fieldMessage {
+  grid-column: 2;
+  grid-row: 1 / span 2;
+  grid-template-rows: auto 1fr;
+  align-content: stretch;
+}
+
+.label {
+  font-size: 0.78rem;
+  color: var(--c-muted);
+}
+
+.input {
+  width: 100%;
+  padding: 0.65rem 0.85rem;
+  border: 1px solid var(--c-border-strong);
+  border-radius: 10px;
+  background: var(--c-ink-raised);
+  color: var(--c-text);
+  font: inherit;
+  font-size: 0.92rem;
+  transition:
+    border-color 200ms ease,
+    box-shadow 200ms ease;
+}
+
+textarea.input {
+  height: 100%;
+  min-height: 8rem;
+  resize: vertical;
+}
+
+/* The pink of the send button, as a ring rather than the global outline. */
+.input:focus-visible {
+  outline: none;
+  border-color: color-mix(in srgb, var(--c-pink) 70%, transparent);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--c-pink) 18%, transparent);
+}
+
+/* Off screen rather than display: none, which some bots know to skip. */
+.trap {
+  position: absolute;
+  left: -10000px;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+}
+
+.formFoot {
+  grid-column: 1 / -1;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.75rem 1rem;
+}
+
+.primary:disabled {
+  opacity: 0.6;
+  cursor: progress;
+  translate: none;
+}
+
+.formNote {
+  font-size: 0.74rem;
+  color: var(--c-faint);
+}
+
+/* The career page's notice: the server's own words, marked in pink. */
+.formError,
+.formSent {
+  font-size: 0.86rem;
   color: var(--c-muted);
   border-inline-start: 2px solid var(--c-pink);
   padding-inline-start: 0.7rem;
   text-wrap: pretty;
 }
 
+.formError {
+  flex-basis: 100%;
+  color: var(--c-text);
+}
+
 @media (max-width: 900px) {
-  .columns {
+  .entries {
     grid-template-columns: minmax(0, 1fr);
   }
 }
 
 @media (max-width: 640px) {
-  .layout {
-    gap: 1.5rem;
+  .form {
+    grid-template-columns: minmax(0, 1fr);
   }
 
-  .columns,
-  .stack {
-    gap: 0.9rem;
+  .fieldMessage {
+    grid-column: auto;
+    grid-row: auto;
+  }
+}
+
+/* Every state still applies; it just arrives without travelling. */
+@media (prefers-reduced-motion: reduce) {
+  .primary,
+  .secondary,
+  .slot,
+  .entries[data-dealt] .slot,
+  .entry,
+  .arrow,
+  .logo,
+  .cover {
+    transition: none;
   }
 
-  .card {
-    gap: 0.8rem;
-    padding: 1rem;
+  .entry {
+    transform: none;
   }
 
-  .avatar {
-    width: 64px;
-    height: 64px;
+  .primary:hover,
+  .secondary:hover,
+  .entry:hover,
+  .entry:focus-visible,
+  .entry:hover .arrow,
+  .entry:focus-visible .arrow,
+  .entry:hover .logo,
+  .entry:focus-visible .logo,
+  .entry:hover .cover,
+  .entry:focus-visible .cover {
+    translate: none;
   }
 
-  .name {
-    font-size: 1.4rem;
-  }
-
-  .bio {
-    font-size: 0.94rem;
-    line-height: 1.5;
-  }
-
-  .statValue {
-    font-size: 1.35rem;
-  }
-
-  .profileLink {
-    padding: 0.35rem 0.85rem;
-    font-size: 0.78rem;
+  .skeleton {
+    animation: none;
   }
 }

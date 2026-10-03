@@ -82,6 +82,15 @@ export async function smokeBundle(bundlePath) {
     throw new Error(`/api/health answered ${metadata?.statusCode ?? "nothing"}: ${body}`);
   }
 
+  // The daily schedule's event takes the other branch of the handler; it must
+  // not reach Hono, which cannot parse it. With the contact form not set up it
+  // is a no-op, so this needs no database.
+  if (!process.env.SUPABASE_URL) {
+    await handler({ keepAlive: true }, new Writable({ write: (_chunk, _encoding, callback) => callback() }), {
+      awsRequestId: "smoke-keepalive",
+    });
+  }
+
   return { status: metadata.statusCode, body };
 }
 

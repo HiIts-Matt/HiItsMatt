@@ -30,6 +30,17 @@
   opacity: 0;
 }
 
+/* The phone menu's own parts; the desktop rail is always open, so has neither. */
+.toggle,
+.backdrop {
+  display: none;
+}
+
+/* On desktop the rows sit straight in the rail, as if the wrapper were not there. */
+.list {
+  display: contents;
+}
+
 .item {
   position: relative;
   display: grid;
@@ -120,52 +131,184 @@
 }
 
 /*
- * Phones get the same always-visible labels, laid along the bottom edge where
- * a vertical rail would eat the viewport width.
+ * Phones: the rail folds into a full-width pill along the bottom, naming the
+ * current page. Opened, the pill grows upward into the same rail at 90% of
+ * the screen, on the curve a played career card grows on, and its rows are
+ * dealt in after it, springing past their place like the overview's cards.
+ * Closing runs it backwards, the rows dropping out first.
  */
 @media (max-width: 640px) {
   .nav {
-    inset-block-start: auto;
-    inset-block-end: 1rem;
-    inset-inline-start: 50%;
-    translate: -50% 0;
-    flex-direction: row;
-    gap: 0.1rem;
-    padding: 0.35rem;
-  }
+    --pill-h: 3.25rem;
+    --nav-bottom: calc(0.75rem + env(safe-area-inset-bottom));
 
-  /* With the index hidden there is only one column left, so drop the two-column
-     track and its gap rather than leaving the label offset to one side. */
-  .item {
-    grid-template-columns: 1fr;
+    inset-block: auto var(--nav-bottom);
+    inset-inline: 0.75rem;
+    translate: none;
+    /* Toggle first in the DOM, for focus order, but at the bottom on screen. */
+    flex-direction: column-reverse;
     gap: 0;
-    justify-items: center;
-    text-align: center;
-    padding: 0.45rem 0.9rem;
+    height: var(--pill-h);
+    padding: 0;
+    overflow: hidden;
+    border-radius: calc(var(--pill-h) / 2);
+    background: rgb(5 1 15 / 72%);
+    box-shadow: 0 18px 40px -18px rgb(0 0 0 / 75%);
+    transition:
+      height 560ms var(--page-ease-settle),
+      border-radius 560ms var(--page-ease-settle),
+      translate var(--page-slide) var(--page-ease-slide),
+      opacity var(--page-slide) var(--page-ease-slide);
   }
 
-  .item::before {
-    inset-inline: 0.8rem;
-    inset-block-start: 0;
-    width: auto;
-    height: 2px;
+  /* Folding up waits for the rows to drop out first. */
+  .nav:not([data-open]) {
+    transition-delay: 120ms, 120ms, 0ms, 0ms;
   }
 
-  .active::before {
-    height: 2px;
+  .nav[data-open] {
+    height: 90dvh;
+    border-radius: 22px;
+  }
+
+  .nav[data-hidden] {
+    translate: calc(-100% - 1rem) 0;
+  }
+
+  .backdrop {
+    display: block;
+    position: fixed;
+    inset: 0;
+    z-index: 19;
+    background: rgb(5 1 15 / 55%);
+    backdrop-filter: blur(6px);
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 420ms var(--page-ease-settle);
+  }
+
+  .backdrop[data-open] {
     opacity: 1;
+    pointer-events: auto;
   }
 
-  .item:not(.active)::before {
+  .toggle {
+    display: flex;
+    flex: none;
+    align-items: center;
+    justify-content: center;
+    gap: 0.75rem;
+    height: var(--pill-h);
+    padding-inline: 1.2rem;
+    color: var(--c-text);
+    font-size: 0.92rem;
+  }
+
+  /* Three lines that turn into a cross as the menu opens. */
+  .burger {
+    position: relative;
+    width: 18px;
+    height: 12px;
+  }
+
+  .burger > span {
+    position: absolute;
+    inset-inline: 0;
+    height: 1.5px;
+    border-radius: 999px;
+    background: currentColor;
+    transition:
+      translate 420ms var(--page-ease-settle),
+      rotate 420ms var(--page-ease-settle),
+      opacity 200ms ease;
+  }
+
+  .burger > span:nth-child(1) {
+    top: 0;
+  }
+
+  .burger > span:nth-child(2) {
+    top: calc(50% - 0.75px);
+  }
+
+  .burger > span:nth-child(3) {
+    bottom: 0;
+  }
+
+  .nav[data-open] .burger > span:nth-child(1) {
+    translate: 0 5.25px;
+    rotate: 45deg;
+  }
+
+  .nav[data-open] .burger > span:nth-child(2) {
     opacity: 0;
   }
 
-  .index {
-    display: none;
+  .nav[data-open] .burger > span:nth-child(3) {
+    translate: 0 -5.25px;
+    rotate: -45deg;
   }
 
-  /* The bottom bar is all page links: there is no room for a sign-off. */
-  .credit {
-    display: none;
+  /* The rail itself, roomier than on desktop: these are thumb targets. */
+  .list {
+    display: flex;
+    flex: 1;
+    flex-direction: column;
+    gap: 0.25rem;
+    min-height: 0;
+    padding: 1rem 0.75rem 0.5rem;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+  }
+
+  .list .item {
+    padding: 0.95rem 1.1rem;
+  }
+
+  .list .label {
+    font-size: 1.05rem;
+  }
+
+  .list .credit {
+    margin-block-start: auto;
+    padding-block-end: 0.75rem;
+  }
+
+  /* Out of the rail: dropped and faded, quickly, all but together. */
+  .list .item,
+  .list .credit {
+    opacity: 0;
+    translate: 0 0.9rem;
+    transition:
+      translate 260ms cubic-bezier(0.55, 0, 0.8, 0.2) calc(var(--i) * 15ms),
+      opacity 200ms ease-in calc(var(--i) * 15ms),
+      color 200ms ease,
+      background 200ms ease;
+  }
+
+  /* Dealt in once the pill has mostly grown, top to bottom, springing past their place. */
+  .nav[data-open] .list .item,
+  .nav[data-open] .list .credit {
+    opacity: 1;
+    translate: 0 0;
+    transition:
+      translate 620ms cubic-bezier(0.3, 1.35, 0.55, 1) calc(180ms + var(--i) * 60ms),
+      opacity 260ms ease-out calc(180ms + var(--i) * 60ms),
+      color 200ms ease,
+      background 200ms ease;
+  }
+}
+
+/* Every state still applies; it just arrives without travelling. */
+@media (prefers-reduced-motion: reduce) {
+  .nav,
+  .nav:not([data-open]),
+  .backdrop,
+  .burger > span,
+  .list .item,
+  .list .credit,
+  .nav[data-open] .list .item,
+  .nav[data-open] .list .credit {
+    transition: none;
   }
 }

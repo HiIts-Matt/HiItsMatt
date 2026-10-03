@@ -2,6 +2,7 @@ import type { Writable } from "node:stream";
 import { streamHandle } from "hono/aws-lambda";
 import type { LambdaContext, LambdaEvent } from "hono/aws-lambda";
 import { app } from "./app.js";
+import { keepAlive } from "./contact/index.js";
 
 /**
  * Entry point for AWS Lambda, used instead of `index.ts` (which owns the local
@@ -29,4 +30,35 @@ export type StreamingHandler = (
   context: LambdaContext,
 ) => Promise<void>;
 
-export const handler = streamHandle(app) as unknown as StreamingHandler;
+const http = streamHandle(app) as unknown as StreamingHandler;
+
+/** What the EventBridge Scheduler rule in DEPLOY.md sends: its fixed JSON input. */
+type KeepAliveEvent = { keepAlive: true };
+
+/**
+ * The one function serves two callers: CloudFront, through the Function URL,
+ * and a daily schedule that keeps the contact form's free Supabase project from
+ * being paused for inactivity. The schedule's event is not an HTTP request, so
+ * it is answered here rather than handed to Hono, which would fail to parse it.
+ *
+ * `streamifyResponse` marks the function it is given and returns that same
+ * function, so `http` can be called directly from inside this one.
+ */
+export const handler: StreamingHandler = awslambda.streamifyResponse(
+  async (event: LambdaEvent | KeepAliveEvent, responseStream: Writable, context: LambdaContext) => {
+    if ("keepAlive" in event) {
+      console.log(`Contact keep-alive: ${await keepAlive()}`);
+      responseStream.end();
+      return;
+    }
+
+    await http(event, responseStream, context);
+  },
+);
+
+declare global {
+  /** Provided by the Lambda Node.js runtime; streamHandle relies on it too. */
+  const awslambda: {
+    streamifyResponse: <T extends (...args: never[]) => unknown>(handler: T) => StreamingHandler;
+  };
+}

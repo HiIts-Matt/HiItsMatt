@@ -115,7 +115,7 @@ function atEnd(scroller: HTMLElement, direction: number): boolean {
  * animations, and a scroll offset can only ever express one number.
  *
  * What it buys back is that a page's own overflow stays completely native.
- * Reading down the overview or the projects list is a plain scroll with plain
+ * Reading down the career timeline or the projects list is a plain scroll with plain
  * momentum; the pager only takes the gesture over once the page has nothing
  * left to scroll in that direction, which is the same rule for wheel, keys and
  * touch.

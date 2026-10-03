@@ -12,7 +12,30 @@ import type { AppType } from "server";
  */
 const apiOrigin = import.meta.env.VITE_API_ORIGIN ?? "";
 
-const client = hc<AppType>(apiOrigin);
+/**
+ * In production the API sits behind CloudFront, which signs each request to
+ * the Lambda function URL (origin access control). For a request with a body
+ * Lambda only accepts the signature if the browser has sent the body's SHA-256
+ * along with it, so every body gets hashed here, from the exact string sent.
+ *
+ * `crypto.subtle` exists only on secure origins: https, and localhost in
+ * development. A dev server opened over a LAN address skips the header, which
+ * nothing but CloudFront checks.
+ */
+async function hashedFetch(input: RequestInfo | URL, init?: RequestInit): Promise<Response> {
+  if (typeof init?.body !== "string" || !globalThis.crypto?.subtle) return fetch(input, init);
+
+  const digest = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(init.body));
+  const headers = new Headers(init.headers);
+  headers.set(
+    "x-amz-content-sha256",
+    Array.from(new Uint8Array(digest), (byte) => byte.toString(16).padStart(2, "0")).join(""),
+  );
+
+  return fetch(input, { ...init, headers });
+}
+
+const client = hc<AppType>(apiOrigin, { fetch: hashedFetch });
 
 export const api = client.api;
 

@@ -6,8 +6,16 @@ export type Resource<T> =
   | { status: "error"; message: string };
 
 /**
- * Minimal async data hook. `key` identifies the request; the loader is read
- * fresh on every run so an inline arrow does not restart the fetch loop.
+ * One request per key for the life of the page. The homepage's cards read the
+ * same career, project and GitHub data as the pages they open, and none of it
+ * changes while the site is open, so every reader shares the first request. A
+ * failed request is forgotten, so the next reader to mount tries again.
+ */
+const requests = new Map<string, Promise<unknown>>();
+
+/**
+ * Minimal async data hook. `key` identifies the request; the loader only runs
+ * for the first reader of a key, and an inline arrow is fine.
  *
  * StrictMode mounts effects twice in development, hence the cancellation flag —
  * without it the second run's state update races the first.
@@ -19,7 +27,14 @@ export function useResource<T>(key: string, load: () => Promise<T>): Resource<T>
     let cancelled = false;
     setResource({ status: "loading" });
 
-    load()
+    let request = requests.get(key) as Promise<T> | undefined;
+    if (!request) {
+      request = load();
+      requests.set(key, request);
+      request.catch(() => requests.delete(key));
+    }
+
+    request
       .then((data) => {
         if (!cancelled) setResource({ status: "ready", data });
       })

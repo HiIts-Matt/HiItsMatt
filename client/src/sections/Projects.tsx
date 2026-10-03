@@ -12,7 +12,7 @@ import { projectPath } from "./sections";
  * A still, even for clips: a grid of autoplaying videos is a lot of bytes for a
  * thumbnail, so a video only shows its cover if the manifest named a poster.
  */
-function coverImage(project: Project): { url: string; alt: string } | null {
+export function coverImage(project: Project): { url: string; alt: string } | null {
   for (const media of project.media) {
     const url = media.kind === "image" ? media.url : media.posterUrl;
     if (url) return { url, alt: media.alt ?? `${project.title} cover` };
@@ -259,11 +259,11 @@ type ProjectsProps = {
 
 /**
  * The curated half of the site: repositories named in the server's PROJECT_REPOS
- * whitelist, on the same measure as the overview so the two sections read as one
+ * whitelist, on the same measure as the other pages so they read as one
  * column. Each card is a cover plus the metadata from the repo's `.portfolio`
  * manifest, and opens the project's own page — the full media set and the
- * write-up live there. Distinct from the overview's carousel, which lists every
- * public repo automatically and links straight out to GitHub.
+ * write-up live there. Distinct from the GitHub page's carousel, which lists
+ * every public repo automatically and links straight out to GitHub.
  */
 export function Projects({ projects, onOpen }: ProjectsProps) {
   return (

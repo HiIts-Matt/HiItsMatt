@@ -208,8 +208,13 @@ function Job({ job, generatedAt, onscreen, hand, scroller }: JobProps) {
   );
 }
 
+/** The career payload. Shared with the homepage's Professional work card. */
+export function useCareer() {
+  return useResource("career", () => unwrap(api.career.$get(), "Could not load career details"));
+}
+
 /**
- * Work, as opposed to the GitHub pages either side of it: everything here —
+ * Work, as opposed to the GitHub-backed pages after it: everything here —
  * every employer, its products, their logos and the activity behind the
  * timeline — comes from the data store, so all of it changes with a push, not
  * a deploy.
@@ -219,7 +224,7 @@ function Job({ job, generatedAt, onscreen, hand, scroller }: JobProps) {
  * large screens its hand of cards is dealt, as it scrolls into view.
  */
 export function Career({ onscreen }: { onscreen: boolean }) {
-  const career = useResource("career", () => unwrap(api.career.$get(), "Could not load career details"));
+  const career = useCareer();
   const hand = useMediaQuery(HAND_QUERY);
   // The page's own scroller, not the document: the Section this page renders in.
   const [scroller, setScroller] = useState<HTMLElement | null>(null);

@@ -273,7 +273,7 @@ export function Landing() {
             role={pager.roleOf(overview.id)}
             direction={pager.direction}
           >
-            <Overview onNavigate={goTo} />
+            <Overview onNavigate={goTo} onscreen={pager.roleOf(overview.id) !== "hidden"} />
           </Section>
 
           <Section

@@ -32,8 +32,9 @@ type SlotState = "rest" | "raised" | "left" | "right" | "selected" | "before" | 
  * Follows the pointer across a raised card: a few degrees of tilt towards it,
  * as if the card were being held up to look at. Written straight to the
  * element — it changes every pointer move, which is no reason to re-render.
+ * Shared with the homepage's cards, so both lean the same way.
  */
-function tiltTowards(event: PointerEvent<HTMLElement>) {
+export function tiltTowards(event: PointerEvent<HTMLElement>) {
   const element = event.currentTarget;
   const box = element.getBoundingClientRect();
   const x = (event.clientX - box.left) / box.width - 0.5;
@@ -42,7 +43,7 @@ function tiltTowards(event: PointerEvent<HTMLElement>) {
   element.style.setProperty("--rx", `${(-y * 10).toFixed(2)}deg`);
 }
 
-function untilt(event: PointerEvent<HTMLElement>) {
+export function untilt(event: PointerEvent<HTMLElement>) {
   event.currentTarget.style.removeProperty("--ry");
   event.currentTarget.style.removeProperty("--rx");
 }

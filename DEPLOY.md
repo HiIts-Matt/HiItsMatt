@@ -526,8 +526,9 @@ types and cache headers, so this copy is throwaway.
 
 AWS WAF is billed per web ACL per month plus per million requests, and the
 "protections" are managed rule groups aimed at applications that take user
-input. Yours is a read-only GET-only site in front of a cache. Enabling it
-buys rules against injection attacks on forms you do not have.
+input. The only input this site takes is the contact form, which validates on
+the server and is rate limited in its database (step 10). Enabling WAF buys
+rules against injection attacks on a query layer you do not have.
 
 ### Panel: Settings
 
@@ -699,9 +700,9 @@ rejected by `AWS_IAM` with a 403. Nothing in the API reads `Authorization`.
 
 **Viewer protocol policy** — **Redirect HTTP to HTTPS**.
 
-**Allowed HTTP methods** — **GET, HEAD, OPTIONS**. The API declares
-`allowMethods: ["GET", "OPTIONS"]` in `server/src/app.ts` and has no mutating
-routes.
+**Allowed HTTP methods** — **GET, HEAD, OPTIONS**. Everything under `/api/*`
+only reads. The one route that takes a body, `/api/contact`, gets its own
+behaviour in step 10, so this one stays read-only.
 
 **Restrict viewer access** — **No**.
 
@@ -932,9 +933,213 @@ curl -i -o /dev/null -w '%{http_code}\n' https://hiitsmatt.dev/projects/anything
   `cache-control: public, max-age=31536000, immutable`, `index.html` should be
   `no-cache`.
 
+## 10. The contact form
+
+The form on the overview posts to `/api/contact`. The Lambda stores each
+message in Supabase, whose `submit_contact` function also enforces the rate
+limit, then emails it to you through SES and texts you a heads-up through SNS.
+Until all of this is set up the form answers "can't take messages right now"
+and points visitors at the email link, so the site can go live without it.
+
+### 10a. Supabase
+
+Use a personal organisation, region **Sydney (ap-southeast-2)** to sit next to
+the Lambda. The project is `cnwjfczrxqxvfulmgnwg`.
+
+The schema lives in `supabase/migrations/` and only ever reaches the project
+through the Supabase CLI (a dev dependency), never by editing it in the
+dashboard. Like `npm run career`, pushing is its own step, done when a
+migration is ready, not part of `npm run deploy`.
+
+1. Once per machine:
+
+   ```
+   npx supabase login
+   npm run db:link
+   ```
+
+   `db:link` asks for the database password (**Project Settings →
+   Database**). The link is kept in `supabase/.temp`, which is gitignored.
+2. Push every migration the project has not run yet:
+
+   ```
+   npm run db:push
+   ```
+
+   It lists the pending files and asks before applying them. The first push
+   creates the table (RLS on, no policies), the `submit_contact` function, and
+   a daily `pg_cron` job that clears senders' IPs after 30 days.
+3. **Project Settings → API Keys** → create a **secret key** (`sb_secret_…`)
+   named `hiitsmatt-api`. Copy it now; it is shown once. The legacy
+   `service_role` key will not work: the API sends the key only on `apikey`,
+   which is how the new keys are used.
+4. The project URL is `https://cnwjfczrxqxvfulmgnwg.supabase.co`.
+
+Check: **Table Editor** shows `contact_messages` with RLS enabled, and
+**Integrations → Cron** lists `contact-messages-forget-ips`.
+
+**Later changes** go in a new file, never an edit to one already pushed:
+`npx supabase migration new <name>` creates it with the right timestamp, then
+`npm run db:push`. A file that has already run is never run again, so editing
+it changes nothing on the project.
+
+**If you already ran the SQL by hand** in the SQL Editor, the CLI does not know
+and its push would fail on `relation already exists`. Mark that migration as
+applied instead:
+
+```
+npx supabase migration repair --status applied 20261003050700
+```
+
+### 10b. SES — the email
+
+Open, in Sydney:
+
+```
+https://ap-southeast-2.console.aws.amazon.com/ses/home?region=ap-southeast-2#/identities
+```
+
+1. **Create identity → Domain** → `hiitsmatt.dev`. Leave **Easy DKIM**,
+   **RSA_2048_BIT**, and DKIM signatures enabled. **Create identity**.
+2. Copy the three DKIM CNAMEs into Cloudflare exactly as in step 2c: **DNS
+   only**, and strip only the trailing `.hiitsmatt.dev` from each name. The
+   identity reaches **Verified** once all three resolve.
+3. Add a DMARC record at Cloudflare, so Gmail trusts mail that DKIM signs:
+   TXT, name `_dmarc`, content `v=DMARC1; p=none;`.
+4. **Create identity → Email address** → the address in `CONTACT_TO`, and
+   click the link SES mails to it.
+
+**Stay in the SES sandbox.** The sandbox only allows sending to verified
+addresses, which is all this form ever does: it mails you, never the
+visitor. The sandbox's 200-a-day limit is another backstop on the rate limit.
+
+### 10c. SNS — the text
+
+**SNS console → Mobile → Text messaging (SMS)**, in Sydney:
+
+1. **Sandbox destination phone numbers → Add phone number** → your mobile in
+   E.164 (`+614…`), then enter the code it texts you. Like SES, the SMS
+   sandbox only sends to verified numbers, so there is no need to leave it.
+2. **Text messaging preferences → Edit**: default message type
+   **Transactional**, and keep the **account spend limit** low. It is the hard
+   ceiling on what a flood of messages can cost.
+
+Texts arrive from a shared Australian number or marked **Unverified**: since
+1 July 2026 a branded sender ID needs ACMA registration, which needs a
+registered business. They still arrive, but carriers are allowed to block
+them, so treat the text as a heads-up and the email as the record.
+
+### 10d. The Lambda — environment and permissions
+
+**Configuration → Environment variables**, alongside step 4's:
+
+| Key | Value |
+| --- | --- |
+| `SUPABASE_URL` | `https://cnwjfczrxqxvfulmgnwg.supabase.co` |
+| `SUPABASE_SECRET_KEY` | the `sb_secret_…` key from 10a |
+| `CONTACT_TO` | your verified address from 10b |
+| `CONTACT_FROM` | e.g. `contact@hiitsmatt.dev`, on the verified domain |
+| `CONTACT_SMS_TO` | your verified mobile from 10c, E.164 (optional) |
+
+Then let the execution role send. Add a second inline policy as in step 4:
+
+```json
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Effect": "Allow",
+      "Action": "ses:SendEmail",
+      "Resource": [
+        "arn:aws:ses:ap-southeast-2:<ACCOUNT_ID>:identity/hiitsmatt.dev",
+        "arn:aws:ses:ap-southeast-2:<ACCOUNT_ID>:identity/<CONTACT_TO address>"
+      ]
+    },
+    {
+      "Effect": "Allow",
+      "Action": "sns:Publish",
+      "Resource": "*"
+    }
+  ]
+}
+```
+
+Both identities are listed because in the sandbox SES authorises the
+recipient as well as the sender. `sns:Publish` straight to a phone number
+cannot be scoped to a resource; the spend limit is what bounds it.
+
+### 10e. CloudFront — a behaviour that accepts POST
+
+**Behaviors → Create behavior**:
+
+- **Path pattern**: `/api/contact`
+- **Origin**: the Lambda origin
+- **Viewer protocol policy**: Redirect HTTP to HTTPS
+- **Allowed HTTP methods**: **GET, HEAD, OPTIONS, PUT, POST, PATCH, DELETE**.
+  CloudFront offers POST only as part of this set; the API itself answers
+  only `POST` here.
+- **Cache policy**: `CachingDisabled`
+- **Origin request policy**: `AllViewerExceptHostHeader`
+- **Function associations**: none
+
+Then move it **above `/api/*`** in the precedence list.
+
+Two things about this behaviour are easy to miss:
+
+- **Lambda rejects a POST through OAC unless the browser hashed the body.**
+  The client sends the body's SHA-256 in `x-amz-content-sha256`
+  (`client/src/lib/api.ts`). Anything that changes the body after the hash is
+  computed, or a client that skips the header, gets a 403.
+- **The rate limit counts `CloudFront-Viewer-Address`**, which CloudFront sets
+  itself and `AllViewerExceptHostHeader` forwards. With a different origin
+  request policy that header can be missing, and the form answers 503.
+
+### 10f. A daily keep-alive
+
+Free Supabase projects are paused after a week with too little database
+activity, and a contact form is quiet for weeks at a time. A daily query keeps
+the project awake:
+
+```
+https://ap-southeast-2.console.aws.amazon.com/scheduler/home?region=ap-southeast-2#/create-schedule
+```
+
+1. Name `contact-keepalive`. **Recurring schedule**, **Rate-based**, every
+   **1 day**. Flexible time window **Off**. **Next**.
+2. Target **AWS Lambda Invoke** → `hiitsmatt-api`. Payload, exactly:
+   `{"keepAlive": true}`. **Next**.
+3. Permissions: **Create new role for this schedule**. **Next**, **Create
+   schedule**.
+
+The function recognises that payload and runs one query instead of handling
+an HTTP request. Each run logs `Contact keep-alive: ok` in CloudWatch.
+
+### 10g. Check it
+
+Send yourself a message from the live site, then:
+
+- **Supabase → Table Editor → `contact_messages`**: the row has `emailed_at`
+  and `texted_at` set and `notify_error` empty. Its `ip` is your own address;
+  if it is a CloudFront address, the header in 10e is not arriving.
+- The email arrives with **Reply-To** set to the address you entered.
+- Sending a fourth message within the hour answers "Too many messages".
+
 ---
 
 ## Things that will bite
+
+**The contact form says it "can't take messages".** A variable from 10d is
+missing (the Lambda logs which on cold start), the Supabase project is paused,
+or `CloudFront-Viewer-Address` is not arriving. CloudWatch has a line
+starting `Contact:` for each.
+
+**`403` on the contact form only.** The `/api/contact` behaviour is missing or
+sits below `/api/*`, so the POST hits a GET-only behaviour. Or the
+`x-amz-content-sha256` header does not match the body.
+
+**A message is in Supabase but never arrived.** Its row's `notify_error` says
+which of SES or SNS refused it and why. Usually it is an unverified identity
+or a missing `ses:SendEmail` resource.
 
 **`403` on every API call.** Either the `/api/*` behaviour is not using
 `AllViewerExceptHostHeader`, or `lambda add-permission` was never run, or the

@@ -168,6 +168,40 @@ const corsOrigins = (process.env.CORS_ORIGINS ?? "http://localhost:5173")
 
 const dataBucket = process.env.DATA_BUCKET?.trim();
 
+const awsRegion = process.env.AWS_REGION?.trim() || undefined;
+
+/**
+ * The contact form: on only when the database and the email are both
+ * configured, since a message is stored and then mailed. The text message is
+ * an extra; without CONTACT_SMS_TO the form still works and only the text is
+ * skipped. A partial setup is reported rather than half-working.
+ */
+function parseContact() {
+  const required = {
+    SUPABASE_URL: process.env.SUPABASE_URL?.trim().replace(/\/+$/, ""),
+    SUPABASE_SECRET_KEY: process.env.SUPABASE_SECRET_KEY?.trim(),
+    CONTACT_TO: process.env.CONTACT_TO?.trim(),
+    CONTACT_FROM: process.env.CONTACT_FROM?.trim(),
+  };
+  const missing = Object.entries(required)
+    .filter(([, value]) => !value)
+    .map(([key]) => key);
+
+  if (missing.length === Object.keys(required).length) return undefined;
+  if (missing.length > 0) {
+    console.warn(`The contact form is off: ${missing.join(", ")} not set.`);
+    return undefined;
+  }
+
+  return Object.freeze({
+    supabaseUrl: required.SUPABASE_URL!,
+    supabaseSecretKey: required.SUPABASE_SECRET_KEY!,
+    to: required.CONTACT_TO!,
+    from: required.CONTACT_FROM!,
+    smsTo: process.env.CONTACT_SMS_TO?.trim() || undefined,
+  });
+}
+
 export const env = Object.freeze({
   githubUsername,
   // Optional on purpose: the server boots without it and only the contribution
@@ -183,6 +217,8 @@ export const env = Object.freeze({
   // bucket when DATA_BUCKET is set (always, on Lambda), otherwise a directory
   // on disk so local development needs no AWS at all.
   dataStore: dataBucket
-    ? ({ kind: "s3", bucket: dataBucket, region: process.env.AWS_REGION?.trim() || undefined } as const)
+    ? ({ kind: "s3", bucket: dataBucket, region: awsRegion } as const)
     : ({ kind: "fs", dir: process.env.DATA_DIR?.trim() || fileURLToPath(new URL("../.data", import.meta.url)) } as const),
+  awsRegion,
+  contact: parseContact(),
 });

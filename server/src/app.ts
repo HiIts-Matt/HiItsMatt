@@ -2,10 +2,12 @@ import { Hono } from "hono";
 import { cors } from "hono/cors";
 import { logger } from "hono/logger";
 import { CareerError } from "./career/index.js";
+import { ContactError } from "./contact/index.js";
 import { env } from "./env.js";
 import { GitHubError } from "./github/rest.js";
 import { release } from "./release.js";
 import { careerRoutes } from "./routes/career.js";
+import { contactRoutes } from "./routes/contact.js";
 import { githubRoutes } from "./routes/github.js";
 
 const app = new Hono().basePath("/api");
@@ -15,15 +17,16 @@ app.use(
   "*",
   cors({
     origin: env.corsOrigins,
-    allowMethods: ["GET", "OPTIONS"],
+    allowMethods: ["GET", "POST", "OPTIONS"],
   }),
 );
 
 app.onError((error, c) => {
-  if (error instanceof GitHubError || error instanceof CareerError) {
+  if (error instanceof GitHubError || error instanceof CareerError || error instanceof ContactError) {
     // Statuses are chosen upstream. GitHubError: 429 rate limit, 503 missing
     // capability, 404 unknown repo, 502 anything else GitHub did.
     // CareerError: 404 nothing published yet.
+    // ContactError: 429 over the rate limit, 503 not set up or Supabase down.
     return c.json({ error: error.message }, error.status);
   }
 
@@ -39,7 +42,8 @@ const routes = app
     c.json({ ok: true as const, release, uptimeSeconds: Math.round(process.uptime()) }),
   )
   .route("/github", githubRoutes)
-  .route("/career", careerRoutes);
+  .route("/career", careerRoutes)
+  .route("/contact", contactRoutes);
 
 export { app };
 export type AppType = typeof routes;

@@ -937,7 +937,7 @@ curl -i -o /dev/null -w '%{http_code}\n' https://hiitsmatt.dev/projects/anything
 
 The form on the overview posts to `/api/contact`. The Lambda stores each
 message in Supabase, whose `submit_contact` function also enforces the rate
-limit, then emails it to you through SES and texts you a heads-up through SNS.
+limit, then emails it to you through SES and texts it to you through SNS.
 Until all of this is set up the form answers "can't take messages right now"
 and points visitors at the email link, so the site can go live without it.
 
@@ -1027,7 +1027,8 @@ visitor. The sandbox's 200-a-day limit is another backstop on the rate limit.
 Texts arrive from a shared Australian number or marked **Unverified**: since
 1 July 2026 a branded sender ID needs ACMA registration, which needs a
 registered business. They still arrive, but carriers are allowed to block
-them, so treat the text as a heads-up and the email as the record.
+them, so treat the text as a convenience and the email as the record. Texts
+carry the first 300 characters of the message; the email has all of it.
 
 ### 10d. The Lambda — environment and permissions
 

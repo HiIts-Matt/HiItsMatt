@@ -78,10 +78,9 @@ async function store(input: ContactInput, ip: string): Promise<number> {
 }
 
 /**
- * Email, then the text, one after the other: the text points at the email, so
- * it says so when there is none to point at. Each outcome lands on the row.
- * Awaited before the response goes out, because Lambda freezes the moment it
- * does and anything still running would be lost.
+ * Email, then text; neither depends on the other, and each outcome lands on
+ * the row. Awaited before the response goes out, because Lambda freezes the
+ * moment it does and anything still running would be lost.
  */
 async function announce(contact: ContactMessage): Promise<void> {
   const { to, from, smsTo } = contactConfig();
@@ -98,7 +97,7 @@ async function announce(contact: ContactMessage): Promise<void> {
 
   if (smsTo) {
     try {
-      await sendText(smsTo, contact, outcome.emailed_at !== undefined);
+      await sendText(smsTo, contact);
       outcome.texted_at = new Date().toISOString();
     } catch (error) {
       console.error(`Contact: text for #${contact.id} failed:`, error);

@@ -44,19 +44,21 @@ export async function sendEmail(to: string, from: string, contact: ContactMessag
 }
 
 /**
- * A heads-up that the email is there, not the message: the visitor's words
- * never reach my phone. That keeps it to one segment, clear of the carriers'
- * link filters, and stops the form being a way to text me anything. When the
- * email failed it says where the message is instead.
+ * Who wrote, then what they wrote. A long message is cut short: every 153
+ * characters is another billed segment (67 when it holds an emoji or other
+ * non-GSM character), SNS refuses a text past 1,600 bytes, and the email
+ * carries the whole thing anyway.
  */
-export async function sendText(to: string, contact: ContactMessage, emailed: boolean): Promise<void> {
+export async function sendText(to: string, contact: ContactMessage): Promise<void> {
   sns ??= import("@aws-sdk/client-sns").then((sdk) => ({ client: new sdk.SNSClient(clientConfig), sdk }));
   const { client, sdk } = await sns;
+
+  const body = contact.message.length > 300 ? `${contact.message.slice(0, 299)}…` : contact.message;
 
   await client.send(
     new sdk.PublishCommand({
       PhoneNumber: to,
-      Message: `hiitsmatt.dev: new message from ${contact.name.slice(0, 40)}. ${emailed ? "Check your email." : "The email failed; it's in Supabase."}`,
+      Message: `${contact.name}, ${contact.email}:\n${body}`,
       MessageAttributes: {
         "AWS.SNS.SMS.SMSType": { DataType: "String", StringValue: "Transactional" },
       },

@@ -4,6 +4,7 @@ import { useNavigate } from "react-router";
 import { Loader } from "../components/Loader";
 import { Section } from "../components/Section";
 import { SideNav } from "../components/SideNav";
+import { CAREER_PAGE } from "../features";
 import { PAGE_OVERLAP_MS, PAGE_SETTLE_MS, PAGE_SLIDE_MS, usePager } from "../hooks/usePager";
 import { usePrefersReducedMotion } from "../hooks/usePrefersReducedMotion";
 import { Career } from "../sections/Career";
@@ -13,10 +14,11 @@ import { IntroBackdrop } from "../sections/IntroBackdrop";
 import { Overview } from "../sections/Overview";
 import { ProjectArticle } from "../sections/ProjectArticle";
 import { Projects, useProjects } from "../sections/Projects";
-import { SECTIONS, SECTION_IDS, pagePath, projectPath } from "../sections/sections";
+import { SECTION_IDS, SECTION_META, pagePath, projectPath } from "../sections/sections";
 import styles from "./Landing.module.css";
 
-const [intro, overview, career, projects, github] = SECTIONS;
+// `career` is undefined while CAREER_PAGE is off, and only read behind it.
+const { intro, overview, career, projects, github } = SECTION_META;
 
 /** Below this the curtain feels like a flash rather than a transition. */
 const MIN_CURTAIN_MS = 650;
@@ -276,14 +278,16 @@ export function Landing() {
             <Overview onNavigate={goTo} onscreen={pager.roleOf(overview.id) !== "hidden"} />
           </Section>
 
-          <Section
-            id={career.id}
-            label={career.label}
-            role={pager.roleOf(career.id)}
-            direction={pager.direction}
-          >
-            <Career onscreen={pager.roleOf(career.id) !== "hidden"} />
-          </Section>
+          {CAREER_PAGE && (
+            <Section
+              id={career.id}
+              label={career.label}
+              role={pager.roleOf(career.id)}
+              direction={pager.direction}
+            >
+              <Career onscreen={pager.roleOf(career.id) !== "hidden"} />
+            </Section>
+          )}
 
           <Section
             id={projects.id}

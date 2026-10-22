@@ -120,7 +120,8 @@
 
 .entries {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  /* --cards is set inline: one column per card on the page. */
+  grid-template-columns: repeat(var(--cards, 3), minmax(0, 1fr));
   gap: clamp(1rem, 2vw, 1.5rem);
 }
 

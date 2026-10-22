@@ -13,6 +13,7 @@ import { REVEAL_DELAY_MS } from "../components/ActivityTimeline";
 import { tiltTowards, untilt } from "../components/CardHand";
 import { productInitials } from "../components/ProductCard";
 import { SectionTitle } from "../components/SectionTitle";
+import { CAREER_PAGE } from "../features";
 import { useSeen } from "../hooks/useSeen";
 import { api, apiUrl, unwrap } from "../lib/api";
 import { useCareer } from "./Career";
@@ -117,6 +118,49 @@ function Skeleton() {
   return <span className={styles.skeleton} />;
 }
 
+/** The Professional work card: the job still running, and the products I built there. */
+function CareerEntry({ index, onNavigate }: { index: number; onNavigate: (id: SectionId) => void }) {
+  const career = useCareer();
+
+  const jobs = career.status === "ready" ? career.data.jobs : [];
+  // The job still running; newest first, so failing that, the latest one.
+  const current = jobs.find((job) => !job.end) ?? jobs[0];
+  const products = current?.products.filter((product) => product.card) ?? [];
+
+  return (
+    <EntryCard
+      id="career"
+      index={index}
+      title="Professional work"
+      onNavigate={onNavigate}
+      meta={current ? `${current.company} · ${products.length} products` : "Where I work, and what I built there"}
+    >
+      {career.status === "loading" && <Skeleton />}
+      {current && (
+        <>
+          <span className={styles.lineStrong}>{current.role}</span>
+          <span className={styles.logos}>
+            {products.slice(0, 4).map((product, index) => (
+              <span
+                key={product.id}
+                className={styles.logo}
+                style={{ "--accent": product.color, "--i": index } as CSSProperties}
+                title={product.name}
+              >
+                {product.logoUrl ? (
+                  <img src={apiUrl(product.logoUrl)} alt="" loading="lazy" decoding="async" />
+                ) : (
+                  <span className={styles.initials}>{productInitials(product.name)}</span>
+                )}
+              </span>
+            ))}
+          </span>
+        </>
+      )}
+    </EntryCard>
+  );
+}
+
 type ContactState =
   | { status: "idle" }
   | { status: "sending" }
@@ -209,7 +253,6 @@ function ContactForm() {
  * that, and gathered up again once the page has gone.
  */
 export function Overview({ onNavigate, onscreen }: { onNavigate: (id: SectionId) => void; onscreen: boolean }) {
-  const career = useCareer();
   const projects = useProjects();
   const profile = useProfile();
   const contributions = useContributions();
@@ -218,11 +261,8 @@ export function Overview({ onNavigate, onscreen }: { onNavigate: (id: SectionId)
   const layout = useCallback((node: HTMLDivElement | null) => setScroller(node?.closest("section") ?? null), []);
   const entries = useRef<HTMLElement>(null);
   const dealt = useSeen(entries, scroller, onscreen, DEAL_THRESHOLD);
-
-  const jobs = career.status === "ready" ? career.data.jobs : [];
-  // The job still running; newest first, so failing that, the latest one.
-  const current = jobs.find((job) => !job.end) ?? jobs[0];
-  const products = current?.products.filter((product) => product.card) ?? [];
+  // The cards after the career one keep their places in the deal whether or not it is there.
+  const first = CAREER_PAGE ? 1 : 0;
 
   const projectList =
     projects.status === "ready"
@@ -248,9 +288,6 @@ export function Overview({ onNavigate, onscreen }: { onNavigate: (id: SectionId)
           <a className={styles.primary} href={`mailto:${EMAIL}`}>
             {EMAIL}
           </a>
-          <a className={styles.secondary} href="/cv.pdf" download>
-            Download CV
-          </a>
           <span className={styles.place}>
             Melbourne, AU · <MelbourneTime />
           </span>
@@ -267,42 +304,13 @@ export function Overview({ onNavigate, onscreen }: { onNavigate: (id: SectionId)
           className={styles.entries}
           aria-labelledby="overview-explore"
           data-dealt={dealt ? "true" : undefined}
-          style={{ "--deal-delay": `${REVEAL_DELAY_MS}ms` } as CSSProperties}
+          style={{ "--deal-delay": `${REVEAL_DELAY_MS}ms`, "--cards": first + 2 } as CSSProperties}
         >
-          <EntryCard
-            id="career"
-            index={0}
-            title="Professional work"
-            onNavigate={onNavigate}
-            meta={current ? `${current.company} · ${products.length} products` : "Where I work, and what I built there"}
-          >
-            {career.status === "loading" && <Skeleton />}
-            {current && (
-              <>
-                <span className={styles.lineStrong}>{current.role}</span>
-                <span className={styles.logos}>
-                  {products.slice(0, 4).map((product, index) => (
-                    <span
-                      key={product.id}
-                      className={styles.logo}
-                      style={{ "--accent": product.color, "--i": index } as CSSProperties}
-                      title={product.name}
-                    >
-                      {product.logoUrl ? (
-                        <img src={apiUrl(product.logoUrl)} alt="" loading="lazy" decoding="async" />
-                      ) : (
-                        <span className={styles.initials}>{productInitials(product.name)}</span>
-                      )}
-                    </span>
-                  ))}
-                </span>
-              </>
-            )}
-          </EntryCard>
+          {CAREER_PAGE && <CareerEntry index={0} onNavigate={onNavigate} />}
 
           <EntryCard
             id="projects"
-            index={1}
+            index={first}
             title="Personal projects"
             onNavigate={onNavigate}
             meta={projects.status === "ready" ? `${projectList.length} projects` : "Things I build in my own time"}
@@ -335,7 +343,7 @@ export function Overview({ onNavigate, onscreen }: { onNavigate: (id: SectionId)
 
           <EntryCard
             id="github"
-            index={2}
+            index={first + 1}
             title="GitHub"
             onNavigate={onNavigate}
             meta={profile.status === "ready" ? `${profile.data.publicRepos} public repos` : "Everything public, live"}

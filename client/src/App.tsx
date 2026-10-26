@@ -1,10 +1,15 @@
 import { BrowserRouter, Route, Routes } from "react-router";
 
+import { MAINTENANCE } from "./features";
 import { Landing } from "./routes/Landing";
+import { Maintenance } from "./routes/Maintenance";
 import { NotFound } from "./routes/NotFound";
 import { SECTIONS, pagePath } from "./sections/sections";
 
 export function App() {
+  // No router at all: every URL is this one screen, so no path leads anywhere.
+  if (MAINTENANCE) return <Maintenance />;
+
   return (
     <BrowserRouter>
       <Routes>

@@ -5,6 +5,7 @@ import { Loader } from "../components/Loader";
 import { Section } from "../components/Section";
 import { SideNav } from "../components/SideNav";
 import { CAREER_PAGE } from "../features";
+import { useCurtain } from "../hooks/useCurtain";
 import { PAGE_OVERLAP_MS, PAGE_SETTLE_MS, PAGE_SLIDE_MS, usePager } from "../hooks/usePager";
 import { usePrefersReducedMotion } from "../hooks/usePrefersReducedMotion";
 import { Career } from "../sections/Career";
@@ -19,13 +20,6 @@ import styles from "./Landing.module.css";
 
 // `career` is undefined while CAREER_PAGE is off, and only read behind it.
 const { intro, overview, career, projects, github } = SECTION_META;
-
-/** Below this the curtain feels like a flash rather than a transition. */
-const MIN_CURTAIN_MS = 650;
-/** Hard release: WebGL can be unavailable or the chunk can fail to load. */
-const MAX_CURTAIN_MS = 5000;
-/** Backstop in case `transitionend` never arrives (background tab, no compositor). */
-const SLIDE_TIMEOUT_MS = 1200;
 
 /** A project's own page: `/projects/<slug>`, always dealt over the projects page. */
 const PROJECT_PATH = /^\/projects\/([^/]+)\/?$/;
@@ -51,8 +45,6 @@ function readRoute(): Route {
  */
 type Detail = { slug: string; open: boolean };
 
-type Phase = "loading" | "revealing" | "ready";
-
 export function Landing() {
   const prefersReducedMotion = usePrefersReducedMotion();
   const navigate = useNavigate();
@@ -60,8 +52,11 @@ export function Landing() {
 
   // A deep link means the visitor asked for a specific page, so the intro
   // curtain would only be in the way.
-  const [phase, setPhase] = useState<Phase>(() => (start.current.pageId !== intro.id ? "ready" : "loading"));
-  const mountedAt = useRef(Date.now());
+  const curtain = useCurtain({
+    skip: start.current.pageId !== intro.id,
+    reducedMotion: prefersReducedMotion,
+  });
+  const { phase } = curtain;
 
   const [detail, setDetail] = useState<Detail | null>(() =>
     start.current.slug ? { slug: start.current.slug, open: true } : null,
@@ -207,38 +202,6 @@ export function Landing() {
     document.getElementById(projects.id)?.focus({ preventScroll: true });
   }, [open]);
 
-  const beginReveal = useCallback(() => {
-    setPhase((current) => {
-      if (current !== "loading") return current;
-      // With motion reduced the slide collapses to nothing, so there is no
-      // transition to wait on — drop the curtain outright.
-      return prefersReducedMotion ? "ready" : "revealing";
-    });
-  }, [prefersReducedMotion]);
-
-  const handleBackdropReady = useCallback(() => {
-    const remaining = MIN_CURTAIN_MS - (Date.now() - mountedAt.current);
-    if (remaining <= 0) {
-      beginReveal();
-      return;
-    }
-    window.setTimeout(beginReveal, remaining);
-  }, [beginReveal]);
-
-  useEffect(() => {
-    if (phase !== "loading") return;
-    const timer = window.setTimeout(beginReveal, MAX_CURTAIN_MS);
-    return () => window.clearTimeout(timer);
-  }, [phase, beginReveal]);
-
-  useEffect(() => {
-    if (phase !== "revealing") return;
-    const timer = window.setTimeout(() => setPhase("ready"), SLIDE_TIMEOUT_MS);
-    return () => window.clearTimeout(timer);
-  }, [phase]);
-
-  const finishReveal = useCallback(() => setPhase("ready"), []);
-
   return (
     <div className={styles.root} style={stage}>
       <div className={styles.stage}>
@@ -259,7 +222,7 @@ export function Landing() {
             role={pager.roleOf(intro.id)}
             direction={pager.direction}
             centered
-            backdrop={<IntroBackdrop onReady={handleBackdropReady} />}
+            backdrop={<IntroBackdrop onReady={curtain.onBackdropReady} />}
           >
             <Intro revealed={phase === "ready"} onAdvance={() => goTo(overview.id)} />
           </Section>
@@ -331,7 +294,7 @@ export function Landing() {
           screen while a project page is. */}
       <SideNav activeId={activeId} onSelect={goTo} hidden={open} />
 
-      {phase !== "ready" && <Loader exiting={phase === "revealing"} onExited={finishReveal} />}
+      {phase !== "ready" && <Loader exiting={phase === "revealing"} onExited={curtain.onExited} />}
     </div>
   );
 }

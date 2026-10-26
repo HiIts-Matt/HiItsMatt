@@ -1,0 +1,10 @@
+/*
+ * The same fixed, clipping stage the landing page deals its pages on (see
+ * Landing.module.css): the intro's edge band hangs below its page and has to be
+ * clipped at the viewport, or the document would scroll down onto it.
+ */
+.stage {
+  position: fixed;
+  inset: 0;
+  overflow: hidden;
+}

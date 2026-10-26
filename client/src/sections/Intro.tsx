@@ -19,16 +19,25 @@ const HEADING = LINES.flat()
 type IntroProps = {
   /** Held false until the loader is offscreen so the stagger is never missed. */
   revealed: boolean;
-  /** Hands over to the next page; the cue is a page step, not a scroll. */
-  onAdvance: () => void;
-};
+} & (
+  | {
+      /** Hands over to the next page; the cue is a page step, not a scroll. */
+      onAdvance: () => void;
+      notice?: never;
+    }
+  | {
+      /** A line under the headline in place of the cue, when there is nowhere to go. */
+      notice: string;
+      onAdvance?: never;
+    }
+);
 
 /**
  * Content only: the gradient behind it belongs to `IntroBackdrop`, which the
  * page takes as its backdrop rather than as content, because the transition
  * band has to paint past this page's bottom edge.
  */
-export function Intro({ revealed, onAdvance }: IntroProps) {
+export function Intro({ revealed, onAdvance, notice }: IntroProps) {
   return (
     <div className={cx(styles.content, revealed && styles.playing)}>
       {/* The words are separate elements for the stagger, so the accessible
@@ -50,10 +59,14 @@ export function Intro({ revealed, onAdvance }: IntroProps) {
         ))}
       </h1>
 
-      <button type="button" className={styles.cue} onClick={onAdvance}>
-        <span className={styles.cueRail} aria-hidden="true" />
-        Scroll
-      </button>
+      {onAdvance ? (
+        <button type="button" className={styles.cue} onClick={onAdvance}>
+          <span className={styles.cueRail} aria-hidden="true" />
+          Scroll
+        </button>
+      ) : (
+        <p className={styles.notice}>{notice}</p>
+      )}
     </div>
   );
 }

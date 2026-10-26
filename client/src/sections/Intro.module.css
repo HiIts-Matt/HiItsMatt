@@ -88,6 +88,24 @@
   color: var(--c-text);
 }
 
+/* The cue's voice and entrance, minus the rail: it is a statement, not a control. */
+.notice {
+  text-wrap: balance;
+  font-family: var(--font-mono);
+  font-size: 0.78rem;
+  letter-spacing: 0.22em;
+  line-height: 1.8;
+  text-align: center;
+  text-transform: uppercase;
+  color: var(--c-muted);
+  opacity: 0;
+}
+
+.playing .notice {
+  animation: fadeIn 700ms ease forwards;
+  animation-delay: 1.1s;
+}
+
 .cueRail {
   position: relative;
   display: block;

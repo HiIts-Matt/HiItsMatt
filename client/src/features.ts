@@ -5,3 +5,10 @@
  * as they are, so turning it back on is this one line.
  */
 export const CAREER_PAGE = false;
+
+/**
+ * The whole site replaced by the intro and a maintenance notice: every URL
+ * renders it, there is no nav, and nothing requests data. The rest of the app
+ * is unreachable from the client and dropped from the bundle while this is on.
+ */
+export const MAINTENANCE = true;
